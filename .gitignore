@@ -1,0 +1,21 @@
+# =============================================================================
+#  This is a no-build, browser-only project. The vendored libraries in lib/
+#  are committed on purpose, so lib/ is NOT ignored.
+# =============================================================================
+
+# OS cruft
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs / misc
+*.log
+
+# Node is not used to run or ship this app; ignore it if it ever sneaks in.
+node_modules/
