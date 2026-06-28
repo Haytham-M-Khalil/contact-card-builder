@@ -113,7 +113,67 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 3. Helpers: a safe file name from the contact's name, and a generic
+  // 3. QR code. Build a QR model from the vCard text (the same text the .vcf
+  //    holds, so scanning saves the contact), then draw it onto a canvas.
+  //    Uses the vendored qrcode-generator library (global `qrcode`).
+  // ---------------------------------------------------------------------------
+
+  // typeNumber 0 = auto-pick the smallest size that fits. 'M' error correction
+  // matches the original Python script (ERROR_CORRECT_M).
+  function buildQrModel(text) {
+    if (typeof qrcode === "undefined") {
+      throw new Error("qrcode-generator library not loaded (lib/qrcode.js).");
+    }
+    var qr = qrcode(0, "M");
+    qr.addData(text);
+    qr.make();
+    return qr;
+  }
+
+  // Draw the QR onto a fresh <canvas>. `scale` is px per module; `margin` is the
+  // quiet zone in modules (4 is the spec-recommended minimum for reliable scans).
+  function drawQrToCanvas(qr, opts) {
+    opts = opts || {};
+    var scale = opts.scale || 10;
+    var margin = opts.margin != null ? opts.margin : 4;
+    var dark = opts.dark || "#1c2230";
+    var light = opts.light || "#ffffff";
+
+    var count = qr.getModuleCount();
+    var size = (count + margin * 2) * scale;
+
+    var canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = light;
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = dark;
+    for (var r = 0; r < count; r++) {
+      for (var c = 0; c < count; c++) {
+        if (qr.isDark(r, c)) {
+          ctx.fillRect((c + margin) * scale, (r + margin) * scale, scale, scale);
+        }
+      }
+    }
+    return canvas;
+  }
+
+  // Swap the sample QR placeholder in the preview for the real generated code.
+  function renderPreviewQr(canvas) {
+    var slot = document.querySelector("#card-preview .qr-placeholder");
+    if (!slot) return;
+    slot.innerHTML = "";
+    slot.classList.add("qr-placeholder--filled");
+    var img = new Image();
+    img.src = canvas.toDataURL("image/png");
+    img.alt = "QR code that saves the contact when scanned";
+    slot.appendChild(img);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 4. Helpers: a safe file name from the contact's name, and a generic
   //    "download this text/blob as a file" routine reused by every output.
   // ---------------------------------------------------------------------------
   function safeBaseName(displayName) {
@@ -141,8 +201,9 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 4. Wire up the form. For now, "Generate card" downloads the .vcf so we can
-  //    verify the data layer. QR (.png) and the PDF plug into this next.
+  // 5. Wire up the form. "Generate card" now produces the .vcf and a QR .png,
+  //    and updates the preview. The PDF and the PDF-only/all-files toggle plug
+  //    into this next.
   // ---------------------------------------------------------------------------
   function handleSubmit(event) {
     event.preventDefault();
@@ -154,19 +215,29 @@
     }
 
     var vcard = buildVCard(data);
-    downloadText(safeBaseName(data.displayName) + ".vcf", vcard, "text/vcard;charset=utf-8");
+    var base = safeBaseName(data.displayName);
+
+    downloadText(base + ".vcf", vcard, "text/vcard;charset=utf-8");
+
+    var canvas = drawQrToCanvas(buildQrModel(vcard));
+    renderPreviewQr(canvas);
+    canvas.toBlob(function (blob) {
+      downloadBlob(base + "_QR.png", blob);
+    }, "image/png");
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     var form = document.getElementById("card-form");
     if (form) form.addEventListener("submit", handleSubmit);
-    console.log("Contact Card Builder: vCard data layer ready.");
+    console.log("Contact Card Builder: vCard + QR ready.");
   });
 
-  // Expose for later steps (QR/PDF) and quick console testing.
+  // Expose for later steps (PDF) and quick console testing.
   window.ContactCard = {
     readForm: readForm,
     buildVCard: buildVCard,
+    buildQrModel: buildQrModel,
+    drawQrToCanvas: drawQrToCanvas,
     safeBaseName: safeBaseName,
     downloadText: downloadText,
     downloadBlob: downloadBlob,

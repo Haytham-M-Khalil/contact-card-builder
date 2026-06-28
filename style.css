@@ -413,6 +413,19 @@ input[type="color"] {
   border-radius: 4px;
 }
 
+.qr-placeholder--filled {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.qr-placeholder--filled img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated; /* keep QR modules crisp when scaled */
+}
+
 .qr-caption {
   font-size: clamp(0.5rem, 0.4rem + 0.4vw, 0.62rem);
   color: var(--muted);

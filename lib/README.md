@@ -5,15 +5,15 @@ self-contained: GitHub Pages serves them from this same site, so there's no CDN
 dependency and the app works offline. There is **no `npm install`** and no build
 step — the browser loads these `.js` files directly via `<script>` tags.
 
-> Empty for now. Each library is downloaded into this folder in the feature step
-> that first needs it (see the roadmap in `CLAUDE.md`), then committed.
+> Libraries are downloaded into this folder in the feature step that first needs
+> them (see the roadmap in `CLAUDE.md`), then committed.
 
 ## Libraries used
 
-| File (planned)        | Library            | Used for                                  | Added in step |
-|-----------------------|--------------------|-------------------------------------------|---------------|
-| `qrcode.js`           | qrcode-generator   | Building the QR matrix from the vCard text | 4 (QR)        |
-| `jspdf.umd.min.js`    | jsPDF              | Generating the PDF; QR drawn as vector squares | 5 (PDF)  |
+| File                  | Library / version       | Used for                                       | Source |
+|-----------------------|-------------------------|------------------------------------------------|--------|
+| `qrcode.js`           | qrcode-generator 1.4.4  | Building the QR matrix from the vCard text      | https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js |
+| `jspdf.umd.min.js`    | jsPDF (pending)         | Generating the PDF; QR drawn as vector squares  | added in step 5 (PDF) |
 
 ## Rules for this folder
 - **Pin a specific version** when vendoring; record the version and source URL here.
