@@ -326,7 +326,38 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 6. Wire up the form. "Generate card" always produces the PDF and refreshes
+  // 6. Dynamic rows: the "+ Add" buttons append a new phone/link row, and each
+  //    row's "×" removes it (keeping at least one row, cleared, so there's
+  //    always somewhere to type).
+  // ---------------------------------------------------------------------------
+  function wireRepeatList(listId, addBtnId) {
+    var list = document.getElementById(listId);
+    var addBtn = document.getElementById(addBtnId);
+    if (!list || !addBtn) return;
+
+    addBtn.addEventListener("click", function () {
+      var rows = list.querySelectorAll(".repeat-row");
+      var clone = rows[rows.length - 1].cloneNode(true);
+      clone.querySelectorAll("input").forEach(function (input) { input.value = ""; });
+      list.appendChild(clone);
+      var firstInput = clone.querySelector("input");
+      if (firstInput) firstInput.focus();
+    });
+
+    list.addEventListener("click", function (event) {
+      var btn = event.target.closest(".row-remove");
+      if (!btn) return;
+      var row = btn.closest(".repeat-row");
+      if (list.querySelectorAll(".repeat-row").length > 1) {
+        row.remove();
+      } else {
+        row.querySelectorAll("input").forEach(function (input) { input.value = ""; });
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // 7. Wire up the form. "Generate card" always produces the PDF and refreshes
   //    the preview; the PDF-only/all-files toggle decides whether the QR .png
   //    and .vcf are downloaded too.
   // ---------------------------------------------------------------------------
@@ -362,6 +393,8 @@
   document.addEventListener("DOMContentLoaded", function () {
     var form = document.getElementById("card-form");
     if (form) form.addEventListener("submit", handleSubmit);
+    wireRepeatList("phone-list", "add-phone");
+    wireRepeatList("link-list", "add-link");
     console.log("Contact Card Builder: vCard + QR + PDF ready.");
   });
 
