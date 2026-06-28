@@ -342,6 +342,7 @@
       list.appendChild(clone);
       var firstInput = clone.querySelector("input");
       if (firstInput) firstInput.focus();
+      syncPreview();
     });
 
     list.addEventListener("click", function (event) {
@@ -353,11 +354,60 @@
       } else {
         row.querySelectorAll("input").forEach(function (input) { input.value = ""; });
       }
+      syncPreview();
     });
   }
 
   // ---------------------------------------------------------------------------
-  // 7. Wire up the form. "Generate card" always produces the PDF and refreshes
+  // 7. Live preview. Mirror the form into the preview card as the user types:
+  //    name, title, contact lines, accent color, and the card's aspect ratio.
+  // ---------------------------------------------------------------------------
+  function syncPreview() {
+    var card = document.getElementById("card-preview");
+    if (!card) return;
+    var data = readForm();
+
+    card.style.setProperty("--accent", data.accent);
+    card.style.aspectRatio = data.size === "eu" ? "85 / 55" : "3.5 / 2";
+
+    var nameEl = card.querySelector(".card__name");
+    var roleEl = card.querySelector(".card__role");
+    var linesEl = card.querySelector(".card__lines");
+
+    if (nameEl) nameEl.textContent = data.displayName || "Your Name";
+    if (roleEl) {
+      roleEl.textContent = data.title;
+      roleEl.style.display = data.title ? "" : "none";
+    }
+    if (!linesEl) return;
+
+    linesEl.innerHTML = "";
+    var addLine = function (build) {
+      var li = document.createElement("li");
+      build(li);
+      linesEl.appendChild(li);
+    };
+    data.phones.forEach(function (phone) {
+      addLine(function (li) {
+        if (phone.label) {
+          var span = document.createElement("span");
+          span.className = "card__label";
+          span.textContent = phone.label;
+          li.appendChild(span);
+          li.appendChild(document.createTextNode(" " + phone.number));
+        } else {
+          li.textContent = phone.number;
+        }
+      });
+    });
+    if (data.email) addLine(function (li) { li.textContent = data.email; });
+    data.links.forEach(function (link) {
+      addLine(function (li) { li.textContent = link; });
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // 8. Wire up the form. "Generate card" always produces the PDF and refreshes
   //    the preview; the PDF-only/all-files toggle decides whether the QR .png
   //    and .vcf are downloaded too.
   // ---------------------------------------------------------------------------
@@ -392,7 +442,11 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     var form = document.getElementById("card-form");
-    if (form) form.addEventListener("submit", handleSubmit);
+    if (form) {
+      form.addEventListener("submit", handleSubmit);
+      form.addEventListener("input", syncPreview);
+      form.addEventListener("change", syncPreview);
+    }
     wireRepeatList("phone-list", "add-phone");
     wireRepeatList("link-list", "add-link");
     console.log("Contact Card Builder: vCard + QR + PDF ready.");
