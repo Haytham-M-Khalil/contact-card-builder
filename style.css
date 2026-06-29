@@ -343,9 +343,14 @@ input[type="color"] {
 }
 
 /* -------------------------- 8. Card preview ------------------------------ */
+/* Proportions mirror the PDF metrics in app.js buildPdf(). On the US card the
+   page is 144 pt tall, so 1 cqh ≈ 1.44 pt; each size below is roughly the PDF
+   point value ÷ 1.44, expressed in container-query height units so the preview
+   scales faithfully at any rendered size and for both card aspect ratios. */
 .card {
   position: relative;
   display: flex;
+  container-type: size;
   aspect-ratio: 3.5 / 2;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -355,15 +360,15 @@ input[type="color"] {
 }
 
 .card__accent {
-  flex: 0 0 6px;
+  flex: 0 0 2.8cqh;        /* 4 pt accent bar */
   background: var(--accent);
 }
 
 .card__body {
   flex: 1 1 auto;
   display: flex;
-  gap: 4%;
-  padding: 6% 6% 6% 5%;
+  gap: 7cqh;               /* ~10 pt gutter before the QR */
+  padding: 9.7cqh;         /* 14 pt margin; with the bar, text starts ~18 pt in */
 }
 
 .card__info {
@@ -372,46 +377,49 @@ input[type="color"] {
 }
 
 .card__name {
-  font-size: clamp(0.95rem, 0.6rem + 1.4vw, 1.35rem);
+  font-size: 9cqh;          /* 13 pt */
   font-weight: 700;
+  line-height: 1.1;
   letter-spacing: -0.01em;
 }
 
 .card__role {
+  margin-top: 0.8cqh;
   color: var(--accent);
-  font-size: clamp(0.7rem, 0.5rem + 0.7vw, 0.9rem);
-  margin-top: 0.1rem;
+  font-size: 5.3cqh;        /* 7.6 pt */
+  line-height: 1.1;
 }
 
 .card__divider {
   border: none;
-  border-top: 2px solid var(--accent);
-  width: 42%;
-  margin: 0.5rem 0 0.6rem;
+  border-top: max(1px, 0.55cqh) solid var(--accent);   /* 0.8 pt rule */
+  width: 66.7cqh;           /* 96 pt */
+  margin: 4.9cqh 0 9cqh;    /* 7 pt above, 13 pt below */
 }
 
 .card__lines {
-  font-size: clamp(0.6rem, 0.45rem + 0.55vw, 0.78rem);
+  font-size: 4.9cqh;        /* 7 pt */
+  line-height: 1.05;
   color: var(--ink);
   display: flex;
   flex-direction: column;
-  gap: 0.18rem;
+  gap: 3cqh;                /* lines ~11.5 pt apart */
   word-break: break-word;
 }
 
 .card__label {
   font-weight: 700;
   color: var(--accent);
-  margin-right: 0.25rem;
+  margin-right: 1.5cqh;
 }
 
 .card__qr {
-  flex: 0 0 32%;
+  flex: 0 0 62cqh;          /* QR box ≈ 0.62 × card height */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 2.5cqh;
 }
 
 .qr-placeholder {
@@ -420,7 +428,7 @@ input[type="color"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 5cqh;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -445,7 +453,7 @@ input[type="color"] {
 }
 
 .qr-caption {
-  font-size: clamp(0.5rem, 0.4rem + 0.4vw, 0.62rem);
+  font-size: 3.8cqh;        /* 5.4 pt */
   color: var(--muted);
   text-align: center;
 }
