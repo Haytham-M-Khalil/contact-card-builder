@@ -198,6 +198,11 @@
     if (typeof qrcode === "undefined") {
       throw new Error("qrcode-generator library not loaded (lib/qrcode.js).");
     }
+    // Encode bytes as UTF-8 so non-Latin text (e.g. Arabic) scans correctly.
+    // The library defaults to a Latin-1 encoder that mangles multi-byte chars.
+    if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs["UTF-8"]) {
+      qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+    }
     var qr = qrcode(0, "M");
     qr.addData(text);
     qr.make();
@@ -258,6 +263,17 @@
     eu: { w: 240.945, h: 155.906 }, // 85 x 55 mm
   };
 
+  function containsArabic(text) {
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charCodeAt(i);
+      if ((c >= 0x0600 && c <= 0x06FF) || (c >= 0x0750 && c <= 0x077F) ||
+          (c >= 0xFB50 && c <= 0xFDFF) || (c >= 0xFE70 && c <= 0xFEFF)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function hexToRgb(hex) {
     hex = String(hex || "").replace("#", "");
     if (hex.length === 3) {
@@ -295,9 +311,11 @@
     // Set the right font for a piece of text and shape it if it's Arabic.
     // Returns the (possibly reshaped) string actually drawn.
     function pieceFont(text, bold) {
-      if (rtl && window.ArabicShaper && ArabicShaper.hasArabic(text)) {
+      if (rtl && containsArabic(text)) {
+        // jsPDF shapes and right-to-left orders Arabic itself — just pick the
+        // Arabic font and hand it the raw text (no manual reshaping/reversing).
         doc.setFont("Amiri", "normal");
-        return ArabicShaper.toVisual(text);
+        return text;
       }
       doc.setFont("helvetica", bold ? "bold" : "normal");
       return text;
