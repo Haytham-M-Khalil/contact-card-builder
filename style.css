@@ -398,10 +398,11 @@ input[type="color"] {
 }
 
 .card__name {
-  font-size: 9cqh;          /* 13 pt */
+  font-size: 9cqh;          /* 13 pt; JS shrinks it to fit one line, like the PDF */
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .card__role {

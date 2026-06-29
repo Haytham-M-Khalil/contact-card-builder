@@ -471,6 +471,20 @@
   // 7. Live preview. Mirror the form into the preview card as the user types:
   //    name, title, contact lines, accent color, and the card's aspect ratio.
   // ---------------------------------------------------------------------------
+  // Shrink the preview name to fit on one line, mirroring the PDF which scales
+  // the name down from 13 pt to a 9 pt floor before it would overflow.
+  function fitPreviewName(nameEl) {
+    nameEl.style.fontSize = "";  // reset to the CSS base (9cqh ≈ 13 pt)
+    var base = parseFloat(window.getComputedStyle(nameEl).fontSize);
+    if (!base) return;
+    var min = base * 9 / 13;
+    var sizePx = base;
+    while (sizePx > min && nameEl.scrollWidth > nameEl.clientWidth) {
+      sizePx -= 0.5;
+      nameEl.style.fontSize = sizePx + "px";
+    }
+  }
+
   function syncPreview() {
     var card = document.getElementById("card-preview");
     if (!card) return;
@@ -483,7 +497,10 @@
     var roleEl = card.querySelector(".card__role");
     var linesEl = card.querySelector(".card__lines");
 
-    if (nameEl) nameEl.textContent = data.displayName || t("previewName");
+    if (nameEl) {
+      nameEl.textContent = data.displayName || t("previewName");
+      fitPreviewName(nameEl);
+    }
     if (roleEl) {
       roleEl.textContent = data.title;
       roleEl.style.display = data.title ? "" : "none";
