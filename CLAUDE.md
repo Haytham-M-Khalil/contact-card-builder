@@ -18,6 +18,12 @@ It is a browser re-implementation of the desktop Python script that originally
 produced these files (vCard → QR → PDF). The `.vcf` is the **source of truth**;
 the QR encodes the exact same vCard text.
 
+The UI is **bilingual (English + Arabic)** with a language toggle. Arabic flips the
+whole layout to right-to-left and renders in the vendored **Amiri** font, in both the
+PDF and the live preview. The preview is a faithful, uniformly-scaled mirror of the
+PDF: metrics are anchored to a single `--pt` CSS variable (PDF points → preview px),
+so what you see matches what prints.
+
 ## Hard constraints
 
 - **Browser-only.** No backend, no server code, no database.
@@ -46,8 +52,8 @@ the QR encodes the exact same vCard text.
 ```
 index.html     # markup; loads style.css, then vendored libs, then app.js
 style.css      # all styles
-app.js         # all app logic
-lib/           # vendored third-party libs (qrcode-generator, jsPDF) + README
+app.js         # all app logic (vCard, QR, PDF, i18n, live preview)
+lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri font) + README
 README.md      # user-facing intro, usage, local run, deploy
 LICENSE        # MIT
 ```

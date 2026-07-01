@@ -10,6 +10,8 @@ form, pick a card size, and download.
 
 ## Features
 
+- **English & Arabic**, with a one-click language toggle. The Arabic card is fully
+  right-to-left and rendered in the **Amiri** font — both in the PDF and the live preview.
 - **Live preview** that updates as you type, including the accent color and card size.
 - **PDF business card** in standard sizes — US 3.5×2 in and EU/ISO 85×55 mm.
 - **QR code** that encodes a vCard, so anyone can scan to save your contact. In the PDF
@@ -27,8 +29,9 @@ The `.vcf` is the source of truth; the QR encodes the exact same vCard text, usi
 - 100% client-side: plain HTML, CSS, and JavaScript — **no build step, no backend, no
   framework.**
 - Built on [jsPDF](https://github.com/parallax/jsPDF) and
-  [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), both
-  **vendored locally** in [`lib/`](lib/) so the app is self-contained and works offline.
+  [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), plus the
+  [Amiri](https://github.com/alif-type/amiri) Arabic font — all **vendored locally**
+  in [`lib/`](lib/) so the app is self-contained and works offline.
 
 ## Run it locally
 
@@ -62,7 +65,7 @@ Every push to `main` redeploys automatically.
 index.html   # markup; loads style.css, then the vendored libs, then app.js
 style.css    # all styles
 app.js       # all app logic (vCard, QR, PDF, preview, validation)
-lib/         # vendored libraries (qrcode-generator, jsPDF) + notes
+lib/         # vendored libraries (qrcode-generator, jsPDF, Amiri font) + notes
 docs/        # README assets (screenshot)
 ```
 

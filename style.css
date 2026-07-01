@@ -35,6 +35,21 @@
   --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Amiri — the same Arabic font the PDF embeds, so the preview matches it.
+   Vendored in lib/ (see lib/README.md). The subset holds only Arabic glyphs and
+   the unicode-range limits it to Arabic script, so Latin runs (phone numbers,
+   email, links) fall through to the sans stack — exactly like the PDF, which
+   draws Arabic in Amiri and Latin in Helvetica. */
+@font-face {
+  font-family: "Amiri";
+  src: url("lib/amiri-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+08A0-08FF,
+    U+FB50-FDFF, U+FE70-FEFF, U+200C-200E;
+}
+
 /* ------------------------------ 2. Base ---------------------------------- */
 * {
   box-sizing: border-box;
@@ -364,11 +379,17 @@ input[type="color"] {
 }
 
 /* -------------------------- 8. Card preview ------------------------------ */
-/* Proportions mirror the PDF metrics in app.js buildPdf(). On the US card the
-   page is 144 pt tall, so 1 cqh ≈ 1.44 pt; each size below is roughly the PDF
-   point value ÷ 1.44, expressed in container-query height units so the preview
-   scales faithfully at any rendered size and for both card aspect ratios. */
+/* The preview is a faithful uniform scaling of the PDF drawn in app.js
+   buildPdf(): a card W pt wide is rendered at the panel's pixel width, so every
+   PDF point maps to the same number of preview pixels. `--pt` captures that one
+   point in the preview (100cqw / card-width-in-points), and each metric below is
+   written as its PDF point value × --pt. Because --pt is anchored to the card's
+   *width*, the two card sizes (which have different point dimensions) both stay
+   true to the PDF — unlike height units, which oversize text on the taller EU
+   card. The QR is the one exception: it is H × 0.62 in the PDF, so it stays in
+   height units (62cqh) which already track the card height exactly. */
 .card {
+  --pt: calc(100cqw / 252);  /* US: 252 pt wide. Overridden for EU below. */
   position: relative;
   display: flex;
   container-type: size;
@@ -380,25 +401,33 @@ input[type="color"] {
   overflow: hidden;
 }
 
+.card--eu {
+  --pt: calc(100cqw / 240.945);  /* EU / ISO: 85 mm = 240.945 pt wide. */
+}
+
 .card__accent {
-  flex: 0 0 2.8cqh;        /* 4 pt accent bar */
+  flex: 0 0 calc(4 * var(--pt));   /* 4 pt accent bar */
   background: var(--accent);
 }
 
 .card__body {
   flex: 1 1 auto;
+  min-width: 0;
   display: flex;
-  gap: 7cqh;               /* ~10 pt gutter before the QR */
-  padding: 9.7cqh;         /* 14 pt margin; with the bar, text starts ~18 pt in */
+  gap: calc(10 * var(--pt));       /* 10 pt gutter before the QR */
+  padding: calc(14 * var(--pt));   /* 14 pt margin; with the bar, text starts ~18 pt in */
 }
 
 .card__info {
-  flex: 1 1 auto;
+  /* basis 0 so this column takes only the space left after the QR — never its
+     content width. That keeps the nowrap name inside a real box, so JS can
+     shrink it (like the PDF) and the QR can't be pushed off the card. */
+  flex: 1 1 0;
   min-width: 0;
 }
 
 .card__name {
-  font-size: 9cqh;          /* 13 pt; JS shrinks it to fit one line, like the PDF */
+  font-size: calc(13 * var(--pt));   /* 13 pt; JS shrinks it to fit one line, like the PDF */
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.01em;
@@ -406,43 +435,43 @@ input[type="color"] {
 }
 
 .card__role {
-  margin-top: 0.8cqh;
+  margin-top: calc(1.2 * var(--pt));
   color: var(--accent);
-  font-size: 5.3cqh;        /* 7.6 pt */
+  font-size: calc(7.6 * var(--pt));  /* 7.6 pt */
   line-height: 1.1;
 }
 
 .card__divider {
   border: none;
-  border-top: max(1px, 0.55cqh) solid var(--accent);   /* 0.8 pt rule */
-  width: 66.7cqh;           /* 96 pt */
-  margin: 4.9cqh 0 9cqh;    /* 7 pt above, 13 pt below */
+  border-top: max(1px, calc(0.8 * var(--pt))) solid var(--accent);  /* 0.8 pt rule */
+  width: calc(96 * var(--pt));       /* 96 pt */
+  margin: calc(7 * var(--pt)) 0 calc(13 * var(--pt));  /* 7 pt above, 13 pt below */
   margin-inline-end: auto;  /* hug the inline-start edge (flips under RTL) */
 }
 
 .card__lines {
-  font-size: 4.9cqh;        /* 7 pt */
+  font-size: calc(7 * var(--pt));    /* 7 pt */
   line-height: 1.05;
   color: var(--ink);
   display: flex;
   flex-direction: column;
-  gap: 3cqh;                /* lines ~11.5 pt apart */
-  word-break: break-word;
+  gap: calc(4.1 * var(--pt));        /* lines ~11.5 pt apart */
+  white-space: nowrap;      /* one line each, like the PDF (no wrapping) */
 }
 
 .card__label {
   font-weight: 700;
   color: var(--accent);
-  margin-right: 1.5cqh;
+  margin-inline-end: calc(2.2 * var(--pt));  /* flips to the correct side under RTL */
 }
 
 .card__qr {
-  flex: 0 0 62cqh;          /* QR box ≈ 0.62 × card height */
+  flex: 0 0 62cqh;          /* QR box ≈ 0.62 × card height (matches PDF H×0.62) */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2.5cqh;
+  gap: calc(3.6 * var(--pt));
 }
 
 .qr-placeholder {
@@ -476,7 +505,7 @@ input[type="color"] {
 }
 
 .qr-caption {
-  font-size: 3.8cqh;        /* 5.4 pt */
+  font-size: calc(5.4 * var(--pt));  /* 5.4 pt */
   color: var(--muted);
   text-align: center;
 }
@@ -488,6 +517,13 @@ input[type="color"] {
 }
 
 /* --------------------------- RTL adjustments ----------------------------- */
+/* Render the Arabic card in Amiri to match the PDF. Thanks to the @font-face
+   unicode-range, only Arabic runs pick up Amiri; the Latin fallback keeps the
+   sans stack for numbers, email and links (as the PDF does). */
+[dir="rtl"] .card {
+  font-family: "Amiri", var(--font);
+}
+
 /* Emails, phone numbers and links are always written left-to-right. */
 input[type="tel"],
 input[type="email"],

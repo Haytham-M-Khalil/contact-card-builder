@@ -471,6 +471,33 @@
   // 7. Live preview. Mirror the form into the preview card as the user types:
   //    name, title, contact lines, accent color, and the card's aspect ratio.
   // ---------------------------------------------------------------------------
+  // A clearly-fictional sample shown before the form is touched — one per
+  // language so the empty-state card reads as an example in the UI's language.
+  // ("فلان الفلاني" is the Arabic "John Doe"; example.com is a reserved test
+  // domain; the numbers/handles are obvious placeholders.)
+  var SAMPLE = {
+    en: {
+      displayName: "Robin Doe",
+      title: "Product Designer",
+      phones: [
+        { label: "WhatsApp", number: "+1 555 0188" },
+        { label: "Mobile", number: "+1 555 0123" },
+      ],
+      email: "robin.doe@example.com",
+      links: ["linkedin.com/in/your-profile", "github.com/your-username"],
+    },
+    ar: {
+      displayName: "فلان الفلاني",
+      title: "مصمم منتجات",
+      phones: [
+        { label: "واتساب", number: "+970500000000" },
+        { label: "موبايل", number: "+970511111111" },
+      ],
+      email: "flan@example.com",
+      links: ["linkedin.com/in/your-profile", "github.com/your-username"],
+    },
+  };
+
   // Shrink the preview name to fit on one line, mirroring the PDF which scales
   // the name down from 13 pt to a 9 pt floor before it would overflow.
   function fitPreviewName(nameEl) {
@@ -491,19 +518,27 @@
     var data = readForm();
 
     card.style.setProperty("--accent", data.accent);
-    card.style.aspectRatio = data.size === "eu" ? "85 / 55" : "3.5 / 2";
+    var isEu = data.size === "eu";
+    card.style.aspectRatio = isEu ? "85 / 55" : "3.5 / 2";
+    // Switch the point-to-pixel scale (--pt in CSS) to the EU card's width.
+    card.classList.toggle("card--eu", isEu);
+
+    // Until any field is filled in, show the localized fictional sample.
+    var isEmpty = !data.displayName && !data.title && !data.email &&
+                  data.phones.length === 0 && data.links.length === 0;
+    var view = isEmpty ? SAMPLE[currentLang] : data;
 
     var nameEl = card.querySelector(".card__name");
     var roleEl = card.querySelector(".card__role");
     var linesEl = card.querySelector(".card__lines");
 
     if (nameEl) {
-      nameEl.textContent = data.displayName || t("previewName");
+      nameEl.textContent = view.displayName || t("previewName");
       fitPreviewName(nameEl);
     }
     if (roleEl) {
-      roleEl.textContent = data.title;
-      roleEl.style.display = data.title ? "" : "none";
+      roleEl.textContent = view.title;
+      roleEl.style.display = view.title ? "" : "none";
     }
     if (!linesEl) return;
 
@@ -513,7 +548,7 @@
       build(li);
       linesEl.appendChild(li);
     };
-    data.phones.forEach(function (phone) {
+    view.phones.forEach(function (phone) {
       addLine(function (li) {
         if (phone.label) {
           var span = document.createElement("span");
@@ -526,8 +561,8 @@
         }
       });
     });
-    if (data.email) addLine(function (li) { li.textContent = data.email; });
-    data.links.forEach(function (link) {
+    if (view.email) addLine(function (li) { li.textContent = view.email; });
+    view.links.forEach(function (link) {
       addLine(function (li) { li.textContent = link; });
     });
   }
@@ -638,6 +673,9 @@
 
     var toggle = document.getElementById("lang-toggle");
     if (toggle) toggle.textContent = currentLang === "en" ? "العربية" : "English";
+
+    // Refresh the preview so the empty-state sample matches the new language.
+    syncPreview();
   }
 
   document.addEventListener("DOMContentLoaded", function () {
