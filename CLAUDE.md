@@ -20,9 +20,10 @@ the QR encodes the exact same vCard text.
 
 The UI is **bilingual (English + Arabic)** with a language toggle. Arabic flips the
 whole layout to right-to-left and renders in the vendored **Amiri** font, in both the
-PDF and the live preview. The preview is a faithful, uniformly-scaled mirror of the
-PDF: metrics are anchored to a single `--pt` CSS variable (PDF points → preview px),
-so what you see matches what prints.
+PDF and the live preview. The preview is drawn from the **same layout** as the PDF:
+`layoutCard()` in `app.js` computes every element once, in PDF points, and both
+`buildPdf()` (jsPDF) and `renderPreview()` (an SVG whose viewBox is the card in points)
+draw that list — so what you see is what prints.
 
 ## Hard constraints
 
@@ -54,9 +55,9 @@ For any visual / UI change, load the project skill **`frontend-design`**
 [anthropics/skills](https://github.com/anthropics/skills), Apache-2.0). Its guidance
 applies within these project rules, which win on conflict:
 
-- **The card preview must keep matching the PDF.** Card metrics are PDF points × `--pt`
-  (see `style.css` §8 and `buildPdf()` in `app.js`). Restyle the *app around the card*
-  freely; any change to the card itself must be made in both the CSS and `buildPdf()`.
+- **The card preview must keep matching the PDF.** Change the card only in
+  `layoutCard()` in `app.js`; both the PDF and the preview draw from it. Restyle the
+  *app around the card* freely, but never position card content with CSS.
 - **No CDN fonts or assets.** A new typeface must be vendored into `lib/` as `.woff2`
   (with its license, version and source recorded in `lib/README.md`). Prefer the system
   stack or a single vendored family.

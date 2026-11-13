@@ -44,7 +44,7 @@
       btnGenerate: "Generate card",
       previewHeading: "Preview",
       scanCaption: "Scan to save my contact",
-      previewNote: "Live preview — updates as you fill in the form. Click “Generate card” for the print-ready PDF and the real QR.",
+      previewNote: "Live preview, drawn from the same layout as the PDF — what you see is what prints. Click “Generate card” to download your files.",
       previewName: "Your Name",
       errName: "Please enter a name.",
       errEmail: "That email doesn't look right.",
@@ -74,7 +74,7 @@
       btnGenerate: "إنشاء البطاقة",
       previewHeading: "معاينة",
       scanCaption: "امسح لحفظ جهة الاتصال",
-      previewNote: "معاينة حية — تتحدث أثناء تعبئة النموذج. اضغط «إنشاء البطاقة» للحصول على ملف PDF الجاهز للطباعة ورمز QR الحقيقي.",
+      previewNote: "معاينة حية مرسومة بنفس تخطيط ملف PDF — ما تراه هو ما سيُطبع. اضغط «إنشاء البطاقة» لتنزيل ملفاتك.",
       previewName: "اسمك",
       errName: "يرجى إدخال الاسم.",
       errEmail: "يبدو أن البريد الإلكتروني غير صحيح.",
@@ -239,18 +239,6 @@
     return canvas;
   }
 
-  // Swap the sample QR placeholder in the preview for the real generated code.
-  function renderPreviewQr(canvas) {
-    var slot = document.querySelector("#card-preview .qr-placeholder");
-    if (!slot) return;
-    slot.innerHTML = "";
-    slot.classList.add("qr-placeholder--filled");
-    var img = new Image();
-    img.src = canvas.toDataURL("image/png");
-    img.alt = "QR code that saves the contact when scanned";
-    slot.appendChild(img);
-  }
-
   // ---------------------------------------------------------------------------
   // 4. PDF business card. A browser port of the original Python canvas layout,
   //    drawn with jsPDF (global `window.jspdf`). The QR is drawn as vector
@@ -283,74 +271,62 @@
     return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
   }
 
-  function buildPdf(data, qr) {
-    if (!window.jspdf || !window.jspdf.jsPDF) {
-      throw new Error("jsPDF library not loaded (lib/jspdf.umd.min.js).");
-    }
-    var JsPDF = window.jspdf.jsPDF;
+  // Card colors (the accent comes from the form).
+  var CARD_INK = "#1c2230";
+  var CARD_GREY = "#73787f";
+
+  // Which font a piece of card text is drawn in. Arabic runs use the embedded
+  // Amiri (it has no bold); everything else uses Helvetica. The preview maps
+  // "helvetica" to the vendored Arimo, which has identical character widths.
+  function cardFont(text, bold) {
+    if (containsArabic(text)) return { family: "Amiri", style: "normal" };
+    return { family: "helvetica", style: bold ? "bold" : "normal" };
+  }
+
+  // Width of `text` in points, measured with jsPDF's own font metrics so the
+  // PDF and the preview make exactly the same fitting decisions.
+  var measureDoc = null;
+  function textWidthPt(text, font, sizePt) {
+    if (!measureDoc) measureDoc = new window.jspdf.jsPDF({ unit: "pt" });
+    measureDoc.setFont(font.family, font.style);
+    return measureDoc.getStringUnitWidth(text) * sizePt;
+  }
+
+  // Lay the card out once, in PDF points, as a list of drawing operations.
+  // Both outputs draw from this same list: buildPdf() with jsPDF and
+  // renderPreview() as an SVG, so the preview matches the PDF by construction.
+  // A port of the original Python canvas layout. `qr` may be null (preview
+  // fallback), in which case the QR box is still reserved at its real size.
+  function layoutCard(data, lang, qr) {
     var size = CARD_SIZES[data.size] || CARD_SIZES.us;
     var W = size.w, H = size.h;
-
-    var doc = new JsPDF({
-      unit: "pt",
-      format: [W, H],
-      orientation: W >= H ? "landscape" : "portrait",
-    });
-
-    var ink = hexToRgb("#1c2230");
-    var grey = hexToRgb("#73787f");
-    var acc = hexToRgb(data.accent);
+    var acc = data.accent || "#732da0";
+    var ops = [];
 
     // In Arabic the whole card is mirrored: accent bar on the right, QR on the
-    // left, text right-aligned. Arabic strings are shaped + reordered for RTL.
-    var rtl = currentLang === "ar";
+    // left, text right-aligned.
+    var rtl = lang === "ar";
     var M = 14, edge = 18;
     var anchorX = rtl ? W - edge : edge;   // where text starts (the "start" side)
     var align = rtl ? "right" : "left";
 
-    // Set the right font for a piece of text and shape it if it's Arabic.
-    // Returns the (possibly reshaped) string actually drawn.
-    function pieceFont(text, bold) {
-      if (rtl && containsArabic(text)) {
-        // jsPDF shapes and right-to-left orders Arabic itself — just pick the
-        // Arabic font and hand it the raw text (no manual reshaping/reversing).
-        doc.setFont("Amiri", "normal");
-        return text;
-      }
-      doc.setFont("helvetica", bold ? "bold" : "normal");
-      return text;
-    }
-    function draw(text, x, y, sizePt, bold, color) {
-      var str = pieceFont(text, bold);
-      doc.setFontSize(sizePt);
-      doc.setTextColor(color.r, color.g, color.b);
-      doc.text(str, x, y, { align: align });
-      return str;
+    function text(str, x, y, sizePt, bold, color, alignTo) {
+      var font = cardFont(str, bold);
+      ops.push({ type: "text", text: str, x: x, y: y, size: sizePt,
+                 font: font, color: color, align: alignTo || align });
+      return font;
     }
 
     // --- QR: vector squares, vertically centered, on the far side ---
     var qrSize = H * 0.62;
     var qx = rtl ? M : W - M - qrSize;
     var qy = (H - qrSize) / 2 - 4;
-    var count = qr.getModuleCount();
-    var quiet = 2; // white quiet-zone modules inside the QR box, for scannability
-    var cell = qrSize / (count + quiet * 2);
-    doc.setFillColor(ink.r, ink.g, ink.b);
-    for (var r = 0; r < count; r++) {
-      for (var c = 0; c < count; c++) {
-        if (qr.isDark(r, c)) {
-          doc.rect(qx + (c + quiet) * cell, qy + (r + quiet) * cell, cell, cell, "F");
-        }
-      }
-    }
-    doc.setTextColor(grey.r, grey.g, grey.b);
-    var cap = pieceFont(t("scanCaption"), false);
-    doc.setFontSize(5.4);
-    doc.text(cap, qx + qrSize / 2, qy + qrSize + 9, { align: "center" });
+    // quiet: white quiet-zone modules inside the QR box, for scannability.
+    ops.push({ type: "qr", x: qx, y: qy, size: qrSize, quiet: 2, qr: qr, color: CARD_INK });
+    text(t("scanCaption"), qx + qrSize / 2, qy + qrSize + 9, 5.4, false, CARD_GREY, "center");
 
     // --- Accent bar (right under RTL, left otherwise) ---
-    doc.setFillColor(acc.r, acc.g, acc.b);
-    doc.rect(rtl ? W - 4 : 0, 0, 4, H, "F");
+    ops.push({ type: "rect", x: rtl ? W - 4 : 0, y: 0, w: 4, h: H, color: acc });
 
     // Width available to the text column (between the start edge and the QR).
     var textWidth = rtl
@@ -358,52 +334,162 @@
       : (qx - 10) - edge;
 
     // --- Name (auto-shrink to fit the text column) ---
-    doc.setTextColor(ink.r, ink.g, ink.b);
-    var nameStr = pieceFont(data.displayName, true);
+    var nameFont = cardFont(data.displayName, true);
     var nameSize = 13;
-    doc.setFontSize(nameSize);
-    while (nameSize > 9 &&
-           doc.getStringUnitWidth(nameStr) * nameSize > textWidth) {
+    while (nameSize > 9 && textWidthPt(data.displayName, nameFont, nameSize) > textWidth) {
       nameSize -= 0.5;
-      doc.setFontSize(nameSize);
     }
     var y = M + nameSize;
-    doc.text(nameStr, anchorX, y, { align: align });
+    text(data.displayName, anchorX, y, nameSize, true, CARD_INK);
 
     // --- Title ---
     if (data.title) {
       y += 13;
-      draw(data.title, anchorX, y, 7.6, false, acc);
+      text(data.title, anchorX, y, 7.6, false, acc);
     }
 
     // --- Divider ---
     y += 7;
-    doc.setDrawColor(acc.r, acc.g, acc.b);
-    doc.setLineWidth(0.8);
     var dividerLen = Math.min(96, textWidth);
-    doc.line(anchorX, y, rtl ? anchorX - dividerLen : anchorX + dividerLen, y);
+    ops.push({ type: "line", x1: anchorX, y1: y, x2: rtl ? anchorX - dividerLen : anchorX + dividerLen,
+               y2: y, width: 0.8, color: acc });
 
     // --- Contact lines: phones (label + number), email, links ---
     y += 13;
     var step = 11.5;
     data.phones.forEach(function (phone) {
       if (phone.label) {
-        var labelStr = draw(phone.label, anchorX, y, 6.6, true, acc);
-        var offset = (doc.getStringUnitWidth(labelStr) + doc.getStringUnitWidth("  ")) * 6.6;
-        draw(phone.number, rtl ? anchorX - offset : anchorX + offset, y, 7.0, false, ink);
+        var labelFont = text(phone.label, anchorX, y, 6.6, true, acc);
+        var offset = textWidthPt(phone.label, labelFont, 6.6) + textWidthPt("  ", labelFont, 6.6);
+        text(phone.number, rtl ? anchorX - offset : anchorX + offset, y, 7.0, false, CARD_INK);
       } else {
-        draw(phone.number, anchorX, y, 7.0, false, ink);
+        text(phone.number, anchorX, y, 7.0, false, CARD_INK);
       }
       y += step;
     });
 
-    if (data.email) { draw(data.email, anchorX, y, 7.0, false, ink); y += step; }
+    if (data.email) { text(data.email, anchorX, y, 7.0, false, CARD_INK); y += step; }
     data.links.forEach(function (link) {
-      draw(link, anchorX, y, 7.0, false, ink);
+      text(link, anchorX, y, 7.0, false, CARD_INK);
       y += step;
     });
 
+    return { w: W, h: H, ops: ops };
+  }
+
+  function buildPdf(data, qr) {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error("jsPDF library not loaded (lib/jspdf.umd.min.js).");
+    }
+    var layout = layoutCard(data, currentLang, qr);
+    var doc = new window.jspdf.jsPDF({
+      unit: "pt",
+      format: [layout.w, layout.h],
+      orientation: layout.w >= layout.h ? "landscape" : "portrait",
+    });
+
+    layout.ops.forEach(function (op) {
+      var c = hexToRgb(op.color);
+      if (op.type === "rect") {
+        doc.setFillColor(c.r, c.g, c.b);
+        doc.rect(op.x, op.y, op.w, op.h, "F");
+      } else if (op.type === "line") {
+        doc.setDrawColor(c.r, c.g, c.b);
+        doc.setLineWidth(op.width);
+        doc.line(op.x1, op.y1, op.x2, op.y2);
+      } else if (op.type === "text") {
+        // jsPDF shapes and right-to-left orders Arabic itself — just pick the
+        // font and hand it the raw text.
+        doc.setFont(op.font.family, op.font.style);
+        doc.setFontSize(op.size);
+        doc.setTextColor(c.r, c.g, c.b);
+        doc.text(op.text, op.x, op.y, { align: op.align });
+      } else if (op.type === "qr") {
+        // Drawn as vector squares (not a pasted image) so it stays crisp in print.
+        var count = op.qr.getModuleCount();
+        var cell = op.size / (count + op.quiet * 2);
+        doc.setFillColor(c.r, c.g, c.b);
+        for (var r = 0; r < count; r++) {
+          for (var col = 0; col < count; col++) {
+            if (op.qr.isDark(r, col)) {
+              doc.rect(op.x + (col + op.quiet) * cell, op.y + (r + op.quiet) * cell, cell, cell, "F");
+            }
+          }
+        }
+      }
+    });
+
     return doc;
+  }
+
+  // Draw the same layout into the preview <svg>. Its viewBox is the card in
+  // points, so the browser scales every coordinate uniformly — 1 pt in the PDF
+  // is the same fraction of the card here.
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var SVG_FONTS = {
+    helvetica: '"Arimo", Helvetica, Arial, sans-serif',
+    Amiri: '"Amiri", "Arimo", serif',
+  };
+  var SVG_ANCHOR = { left: "start", right: "end", center: "middle" };
+
+  // jsPDF picks its own Arabic letter forms (initial / medial / final, lam-alef)
+  // when it writes the PDF. Showing the preview those same pre-shaped characters
+  // makes its Arabic look exactly like the printed card.
+  function pdfArabicForms(text) {
+    var api = window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API;
+    return api && api.processArabic ? api.processArabic(text) : text;
+  }
+
+  function svgEl(name, attrs) {
+    var el = document.createElementNS(SVG_NS, name);
+    Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+    return el;
+  }
+
+  function renderPreview(svg, layout) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute("viewBox", "0 0 " + layout.w + " " + layout.h);
+    svg.appendChild(svgEl("rect", { x: 0, y: 0, width: layout.w, height: layout.h, fill: "#fff" }));
+
+    layout.ops.forEach(function (op) {
+      if (op.type === "rect") {
+        svg.appendChild(svgEl("rect", { x: op.x, y: op.y, width: op.w, height: op.h, fill: op.color }));
+      } else if (op.type === "line") {
+        svg.appendChild(svgEl("line", { x1: op.x1, y1: op.y1, x2: op.x2, y2: op.y2,
+                                        stroke: op.color, "stroke-width": op.width }));
+      } else if (op.type === "text") {
+        var el = svgEl("text", {
+          x: op.x, y: op.y, fill: op.color,
+          "font-size": op.size,
+          "font-family": SVG_FONTS[op.font.family],
+          "font-weight": op.font.style === "bold" ? 700 : 400,
+          "text-anchor": SVG_ANCHOR[op.align],
+        });
+        el.style.whiteSpace = "pre";      // keep spaces exactly as the PDF draws them
+        el.style.fontKerning = "none";    // jsPDF never kerns (e.g. "11" in Arimo)
+        el.textContent = op.font.family === "Amiri" ? pdfArabicForms(op.text) : op.text;
+        svg.appendChild(el);
+      } else if (op.type === "qr") {
+        if (!op.qr) {
+          // No QR (e.g. too much data to encode): show the reserved box.
+          svg.appendChild(svgEl("rect", { x: op.x, y: op.y, width: op.size, height: op.size,
+                                          fill: "#eef0f3" }));
+          return;
+        }
+        // One path in module units, scaled into place: no seams between modules.
+        var count = op.qr.getModuleCount();
+        var cell = op.size / (count + op.quiet * 2);
+        var d = "";
+        for (var r = 0; r < count; r++) {
+          for (var col = 0; col < count; col++) {
+            if (op.qr.isDark(r, col)) d += "M" + col + " " + r + "h1v1h-1z";
+          }
+        }
+        var x0 = op.x + op.quiet * cell, y0 = op.y + op.quiet * cell;
+        svg.appendChild(svgEl("path", { d: d, fill: op.color,
+          transform: "translate(" + x0 + " " + y0 + ") scale(" + cell + ")" }));
+      }
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -498,73 +584,38 @@
     },
   };
 
-  // Shrink the preview name to fit on one line, mirroring the PDF which scales
-  // the name down from 13 pt to a 9 pt floor before it would overflow.
-  function fitPreviewName(nameEl) {
-    nameEl.style.fontSize = "";  // reset to the CSS base (9cqh ≈ 13 pt)
-    var base = parseFloat(window.getComputedStyle(nameEl).fontSize);
-    if (!base) return;
-    var min = base * 9 / 13;
-    var sizePx = base;
-    while (sizePx > min && nameEl.scrollWidth > nameEl.clientWidth) {
-      sizePx -= 0.5;
-      nameEl.style.fontSize = sizePx + "px";
-    }
-  }
-
+  // Mirror the form into the preview card as the user types. The preview is
+  // drawn from the same layout as the PDF (layoutCard), including a live QR,
+  // so what you see is what prints.
   function syncPreview() {
     var card = document.getElementById("card-preview");
-    if (!card) return;
+    var svg = card && card.querySelector("svg");
+    if (!svg) return;
     var data = readForm();
-
-    card.style.setProperty("--accent", data.accent);
-    var isEu = data.size === "eu";
-    card.style.aspectRatio = isEu ? "85 / 55" : "3.5 / 2";
-    // Switch the point-to-pixel scale (--pt in CSS) to the EU card's width.
-    card.classList.toggle("card--eu", isEu);
 
     // Until any field is filled in, show the localized fictional sample.
     var isEmpty = !data.displayName && !data.title && !data.email &&
                   data.phones.length === 0 && data.links.length === 0;
     var view = isEmpty ? SAMPLE[currentLang] : data;
-
-    var nameEl = card.querySelector(".card__name");
-    var roleEl = card.querySelector(".card__role");
-    var linesEl = card.querySelector(".card__lines");
-
-    if (nameEl) {
-      nameEl.textContent = view.displayName || t("previewName");
-      fitPreviewName(nameEl);
-    }
-    if (roleEl) {
-      roleEl.textContent = view.title;
-      roleEl.style.display = view.title ? "" : "none";
-    }
-    if (!linesEl) return;
-
-    linesEl.innerHTML = "";
-    var addLine = function (build) {
-      var li = document.createElement("li");
-      build(li);
-      linesEl.appendChild(li);
+    var name = view.displayName || t("previewName");
+    var shown = {
+      displayName: name,
+      givenName: view.givenName || name,
+      familyName: view.familyName || "",
+      title: view.title,
+      phones: view.phones,
+      email: view.email,
+      links: view.links,
+      accent: data.accent,
+      size: data.size,
     };
-    view.phones.forEach(function (phone) {
-      addLine(function (li) {
-        if (phone.label) {
-          var span = document.createElement("span");
-          span.className = "card__label";
-          span.textContent = phone.label;
-          li.appendChild(span);
-          li.appendChild(document.createTextNode(" " + phone.number));
-        } else {
-          li.textContent = phone.number;
-        }
-      });
-    });
-    if (view.email) addLine(function (li) { li.textContent = view.email; });
-    view.links.forEach(function (link) {
-      addLine(function (li) { li.textContent = link; });
-    });
+
+    // The QR encodes the shown contact, so its density matches the real card.
+    // Too much data for a QR code throws; the box is then shown empty.
+    var qr = null;
+    try { qr = buildQrModel(buildVCard(shown)); } catch (e) { qr = null; }
+
+    renderPreview(svg, layoutCard(shown, currentLang, qr));
   }
 
   // ---------------------------------------------------------------------------
@@ -633,9 +684,7 @@
     var base = safeBaseName(data.displayName);
     var qr = buildQrModel(vcard);
 
-    // Always refresh the preview with the real QR.
     var canvas = drawQrToCanvas(qr);
-    renderPreviewQr(canvas);
 
     // The PDF business card is always produced (QR drawn as vector squares).
     buildPdf(data, qr).save(base + "_card.pdf");
@@ -713,6 +762,7 @@
     buildVCard: buildVCard,
     buildQrModel: buildQrModel,
     drawQrToCanvas: drawQrToCanvas,
+    layoutCard: layoutCard,
     buildPdf: buildPdf,
     safeBaseName: safeBaseName,
     downloadText: downloadText,
