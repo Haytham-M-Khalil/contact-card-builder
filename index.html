@@ -27,12 +27,12 @@
 
           <label class="field">
             <span class="field__label" data-i18n="labelName">Full name</span>
-            <input type="text" id="name" name="name" placeholder="Robin Doe" />
+            <input type="text" id="name" name="name" data-i18n-ph="phName" placeholder="Robin Doe" />
           </label>
 
           <label class="field">
             <span class="field__label" data-i18n="labelTitle">Title / role</span>
-            <input type="text" id="title" name="title" placeholder="Product Designer" />
+            <input type="text" id="title" name="title" data-i18n-ph="phTitle" placeholder="Product Designer" />
           </label>
         </fieldset>
 
@@ -42,12 +42,12 @@
           <div id="phone-list" class="repeat-list">
             <div class="repeat-row">
               <input type="text" class="phone-label" list="phone-labels" data-i18n-ph="phPhoneLabel" placeholder="Label (e.g. WhatsApp)" aria-label="Phone label" />
-              <input type="tel" class="phone-number" placeholder="+1 555 0188" aria-label="Phone number" />
+              <input type="tel" class="phone-number" data-i18n-ph="phPhone1" placeholder="+1 555 0188" aria-label="Phone number" />
               <button type="button" class="row-remove" aria-label="Remove this phone">&times;</button>
             </div>
             <div class="repeat-row">
               <input type="text" class="phone-label" list="phone-labels" data-i18n-ph="phPhoneLabel" placeholder="Label (e.g. WhatsApp)" aria-label="Phone label" />
-              <input type="tel" class="phone-number" placeholder="+1 555 0123" aria-label="Phone number" />
+              <input type="tel" class="phone-number" data-i18n-ph="phPhone2" placeholder="+1 555 0123" aria-label="Phone number" />
               <button type="button" class="row-remove" aria-label="Remove this phone">&times;</button>
             </div>
           </div>
@@ -59,7 +59,7 @@
 
           <label class="field">
             <span class="field__label" data-i18n="labelEmail">Email</span>
-            <input type="email" id="email" name="email" placeholder="robin.doe@example.com" />
+            <input type="email" id="email" name="email" data-i18n-ph="phEmail" placeholder="robin.doe@example.com" />
           </label>
         </fieldset>
 
