@@ -33,6 +33,8 @@
       phPhone1: "+1 555 0188",
       phPhone2: "+1 555 0123",
       phEmail: "robin.doe@example.com",
+      // Suggestions offered in the phone-label field (free text still allowed).
+      phoneLabelPresets: ["WhatsApp", "Mobile", "Work", "Home", "Telegram", "Signal"],
       addPhone: "+ Add phone",
       legendContact: "Contact",
       labelEmail: "Email",
@@ -70,6 +72,7 @@
       phPhone1: "+970500000000",
       phPhone2: "+970511111111",
       phEmail: "flan@example.com",
+      phoneLabelPresets: ["واتساب", "موبايل", "عمل", "منزل", "تيليجرام", "سيجنال"],
       addPhone: "+ إضافة هاتف",
       legendContact: "وسائل التواصل",
       labelEmail: "البريد الإلكتروني",
@@ -736,6 +739,15 @@
       var key = el.getAttribute("data-i18n");
       if (dict[key] != null) el.textContent = dict[key];
     });
+    var presets = document.getElementById("phone-labels");
+    if (presets) {
+      presets.innerHTML = "";
+      dict.phoneLabelPresets.forEach(function (label) {
+        var option = document.createElement("option");
+        option.value = label;
+        presets.appendChild(option);
+      });
+    }
     document.querySelectorAll("[data-i18n-ph]").forEach(function (el) {
       var key = el.getAttribute("data-i18n-ph");
       if (dict[key] != null) el.setAttribute("placeholder", dict[key]);
