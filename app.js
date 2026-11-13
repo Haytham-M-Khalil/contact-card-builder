@@ -33,6 +33,8 @@
       labelEmail: "Email",
       legendLinks: "Links",
       addLink: "+ Add link",
+      labelLinksInQr: "Save links in the QR code and contact file",
+      hintLinksInQr: "Links always print on the card. Untick for a simpler QR that older phones scan more reliably.",
       legendAppearance: "Appearance",
       labelAccent: "Accent color",
       legendOutput: "Output",
@@ -63,6 +65,8 @@
       labelEmail: "البريد الإلكتروني",
       legendLinks: "الروابط",
       addLink: "+ إضافة رابط",
+      labelLinksInQr: "حفظ الروابط في رمز QR وملف جهة الاتصال",
+      hintLinksInQr: "تُطبع الروابط على البطاقة دائمًا. ألغِ التحديد للحصول على رمز QR أبسط تقرؤه الهواتف القديمة بسهولة أكبر.",
       legendAppearance: "المظهر",
       labelAccent: "اللون المميز",
       legendOutput: "المخرجات",
@@ -124,6 +128,7 @@
     });
 
     var outputEl = document.querySelector('input[name="output"]:checked');
+    var linksInQrEl = document.getElementById("links-in-qr");
 
     return {
       displayName: displayName,
@@ -133,6 +138,9 @@
       phones: phones,
       email: val("email"),
       links: links,
+      // Links always print on the card; this decides if they also go in the
+      // vCard (and so the QR). Fewer URLs = a simpler QR for older scanners.
+      linksInVCard: linksInQrEl ? linksInQrEl.checked : true,
       accent: val("accent") || "#732da0",
       output: outputEl ? outputEl.value : "all",
       size: val("card-size") || "us",
@@ -177,9 +185,11 @@
 
     if (data.email) lines.push("EMAIL;type=INTERNET:" + escapeVCard(data.email));
 
-    data.links.forEach(function (link) {
-      lines.push("URL:" + escapeVCard(normalizeUrl(link)));
-    });
+    if (data.linksInVCard !== false) {
+      data.links.forEach(function (link) {
+        lines.push("URL:" + escapeVCard(normalizeUrl(link)));
+      });
+    }
 
     lines.push("END:VCARD");
     lines.push(""); // trailing CRLF so the file ends with a newline
@@ -606,6 +616,7 @@
       phones: view.phones,
       email: view.email,
       links: view.links,
+      linksInVCard: data.linksInVCard,
       accent: data.accent,
       size: data.size,
     };
