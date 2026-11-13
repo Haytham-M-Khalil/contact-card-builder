@@ -76,7 +76,7 @@ applies within these project rules, which win on conflict:
 index.html     # markup; loads style.css, then vendored libs, then app.js
 style.css      # all styles
 app.js         # all app logic (vCard, QR, PDF, i18n, live preview)
-lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri font) + README
+lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri + Arimo fonts) + README
 .claude/skills/ # project skills for Claude Code (frontend-design)
 README.md      # user-facing intro, usage, local run, deploy
 LICENSE        # MIT

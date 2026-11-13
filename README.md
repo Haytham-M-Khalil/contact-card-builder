@@ -12,7 +12,8 @@ form, pick a card size, and download.
 
 - **English & Arabic**, with a one-click language toggle. The Arabic card is fully
   right-to-left and rendered in the **Amiri** font — both in the PDF and the live preview.
-- **Live preview** that updates as you type, including the accent color and card size.
+- **Live preview that matches the PDF**: it's drawn from the same layout as the printed
+  card, real QR code included, and updates as you type.
 - **PDF business card** in standard sizes — US 3.5×2 in and EU/ISO 85×55 mm.
 - **QR code** that encodes a vCard, so anyone can scan to save your contact. In the PDF
   it's drawn as **vector squares**, so it stays crisp at any print size.
@@ -30,8 +31,12 @@ The `.vcf` is the source of truth; the QR encodes the exact same vCard text, usi
   framework.**
 - Built on [jsPDF](https://github.com/parallax/jsPDF) and
   [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), plus the
-  [Amiri](https://github.com/alif-type/amiri) Arabic font — all **vendored locally**
-  in [`lib/`](lib/) so the app is self-contained and works offline.
+  [Amiri](https://github.com/alif-type/amiri) Arabic font and the
+  [Arimo](https://github.com/googlefonts/Arimo) font — all **vendored locally** in
+  [`lib/`](lib/) so the app is self-contained and works offline.
+- The card is laid out once, in PDF points. The PDF and the live preview (an SVG) both
+  draw from that one layout. Arimo has the same character widths as the PDF's
+  Helvetica, so the preview shows exactly how everything will fit on the printed card.
 
 ## Run it locally
 
@@ -65,7 +70,7 @@ Every push to `main` redeploys automatically.
 index.html   # markup; loads style.css, then the vendored libs, then app.js
 style.css    # all styles
 app.js       # all app logic (vCard, QR, PDF, preview, validation)
-lib/         # vendored libraries (qrcode-generator, jsPDF, Amiri font) + notes
+lib/         # vendored libraries (qrcode-generator, jsPDF, Amiri + Arimo fonts) + notes
 docs/        # README assets (screenshot)
 ```
 
