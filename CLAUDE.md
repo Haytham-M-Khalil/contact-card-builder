@@ -47,6 +47,28 @@ so what you see matches what prints.
 - Keep it approachable — this is a first open-source / learning project; favor
   clear, readable code over clever code.
 
+## Design work
+
+For any visual / UI change, load the project skill **`frontend-design`**
+(`.claude/skills/frontend-design/`, vendored unmodified from
+[anthropics/skills](https://github.com/anthropics/skills), Apache-2.0). Its guidance
+applies within these project rules, which win on conflict:
+
+- **The card preview must keep matching the PDF.** Card metrics are PDF points × `--pt`
+  (see `style.css` §8 and `buildPdf()` in `app.js`). Restyle the *app around the card*
+  freely; any change to the card itself must be made in both the CSS and `buildPdf()`.
+- **No CDN fonts or assets.** A new typeface must be vendored into `lib/` as `.woff2`
+  (with its license, version and source recorded in `lib/README.md`). Prefer the system
+  stack or a single vendored family.
+- **Bilingual + RTL.** Every layout must work in English and Arabic: use logical
+  properties (`inline-start/end`, `margin-inline-*`), never hard-coded left/right, and
+  add any new UI text to both languages in the i18n table in `app.js`.
+- **The accent color is user-editable** — the UI must look right with any accent, so
+  don't build the palette around the default purple.
+- Quality floor: responsive to phone width, visible keyboard focus,
+  `prefers-reduced-motion` respected, WCAG AA contrast.
+- Check changes in a real browser in both languages and both card sizes before committing.
+
 ## Project structure
 
 ```
@@ -54,6 +76,7 @@ index.html     # markup; loads style.css, then vendored libs, then app.js
 style.css      # all styles
 app.js         # all app logic (vCard, QR, PDF, i18n, live preview)
 lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri font) + README
+.claude/skills/ # project skills for Claude Code (frontend-design)
 README.md      # user-facing intro, usage, local run, deploy
 LICENSE        # MIT
 ```
