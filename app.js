@@ -611,12 +611,32 @@
   // 5. Helpers: a safe file name from the contact's name, and a generic
   //    "download this text/blob as a file" routine reused by every output.
   // ---------------------------------------------------------------------------
+  // Keeps letters and digits from any script (\p{L}, \p{N}, plus \p{M} for
+  // accents and Arabic diacritics), so "فلان الفلاني" and "José Núñez" keep
+  // their names. Drops characters file systems reject, like / \ : * ? " < > |.
   function safeBaseName(displayName) {
     var base = displayName
       .trim()
       .replace(/\s+/g, "_")
-      .replace(/[^A-Za-z0-9_.\-]/g, "");
+      .replace(/[^\p{L}\p{M}\p{N}_.\-]/gu, "")
+      .replace(/_+/g, "_")
+      .replace(/^[_.\-]+|[_.\-]+$/g, "");
     return base || "contact";
+  }
+
+  // The PDF's file name says what's inside, so saved files are easy to tell
+  // apart: whose card, one card or a full sheet, the size, and the language.
+  //   Robin_Doe_card_US_EN.pdf            one US card, English layout
+  //   فلان_الفلاني_card_EU_AR.pdf          one EU card, Arabic layout
+  //   Robin_Doe_card-sheet_US-Letter_EN.pdf  10 US cards on a Letter page
+  //   Robin_Doe_card-sheet_EU-A4_AR.pdf      10 EU cards on an A4 page
+  function pdfFileName(data, lang) {
+    var size = data.size === "eu" ? "EU" : "US";
+    var language = lang === "ar" ? "AR" : "EN";
+    var kind = data.sheet
+      ? "card-sheet_" + size + "-" + layoutSheet(data.size).paper.name
+      : "card_" + size;
+    return safeBaseName(data.displayName) + "_" + kind + "_" + language + ".pdf";
   }
 
   function downloadBlob(filename, blob) {
@@ -819,11 +839,8 @@
     var canvas = drawQrToCanvas(qr);
 
     // The PDF business card is always produced (QR drawn as vector squares):
-    // one card, or a full sheet named after its paper (e.g. Robin_Doe_cards_A4.pdf).
-    var pdfName = data.sheet
-      ? base + "_cards_" + layoutSheet(data.size).paper.name + ".pdf"
-      : base + "_card.pdf";
-    buildPdf(data, qr).save(pdfName);
+    // one card or a full sheet, named by size and language (see pdfFileName).
+    buildPdf(data, qr).save(pdfFileName(data, currentLang));
 
     // "All files" additionally downloads the QR .png and the .vcf.
     if (data.output === "all") {
@@ -911,6 +928,7 @@
     layoutSheet: layoutSheet,
     buildPdf: buildPdf,
     safeBaseName: safeBaseName,
+    pdfFileName: pdfFileName,
     downloadText: downloadText,
     downloadBlob: downloadBlob,
     applyLanguage: applyLanguage,
