@@ -50,6 +50,12 @@
       labelCardSize: "Card size",
       sizeUs: "US business card — 3.5 × 2 in",
       sizeEu: "EU / ISO — 85 × 55 mm",
+      labelPdfLayout: "PDF layout",
+      layoutSingle: "One card per page",
+      layoutSheet: "Full sheet of cards",
+      hintSingle: "Exact card size, ready to send to a print shop.",
+      // {count} and {paper} are filled in by updateLayoutHint().
+      hintSheet: "{count} cards on one {paper} page, with cut marks. Print at Actual size (100%), then cut along the marks.",
       btnGenerate: "Generate card",
       previewHeading: "Preview",
       scanCaption: "Scan to save my contact",
@@ -88,6 +94,11 @@
       labelCardSize: "حجم البطاقة",
       sizeUs: "بطاقة أمريكية — 3.5 × 2 إنش",
       sizeEu: "أوروبية / ISO — 85 × 55 مم",
+      labelPdfLayout: "تخطيط ملف PDF",
+      layoutSingle: "بطاقة واحدة في كل صفحة",
+      layoutSheet: "ورقة كاملة من البطاقات",
+      hintSingle: "بالمقاس الفعلي للبطاقة، جاهز لإرساله إلى المطبعة.",
+      hintSheet: "{count} بطاقات على صفحة {paper} واحدة مع علامات القص. اطبعها بالحجم الفعلي (100%) ثم قُصّ على العلامات.",
       btnGenerate: "إنشاء البطاقة",
       previewHeading: "معاينة",
       scanCaption: "امسح لحفظ جهة الاتصال",
@@ -157,6 +168,8 @@
       accent: val("accent") || "#732da0",
       output: outputEl ? outputEl.value : "all",
       size: val("card-size") || "us",
+      // true = a full page of cards to print at home; false = one card per page.
+      sheet: val("pdf-layout") === "sheet",
     };
   }
 
@@ -400,48 +413,127 @@
     return { w: W, h: H, ops: ops };
   }
 
-  function buildPdf(data, qr) {
-    if (!window.jspdf || !window.jspdf.jsPDF) {
-      throw new Error("jsPDF library not loaded (lib/jspdf.umd.min.js).");
-    }
-    var layout = layoutCard(data, currentLang, qr);
-    var doc = new window.jspdf.jsPDF({
-      unit: "pt",
-      format: [layout.w, layout.h],
-      orientation: layout.w >= layout.h ? "landscape" : "portrait",
-    });
+  // Paper for the "full sheet" layout, in points. Each card size goes on the
+  // paper used where that card is standard: US cards on Letter, EU cards on A4.
+  var PAPER_SIZES = {
+    us: { name: "Letter", w: 612, h: 792 },     // 8.5 x 11 in
+    eu: { name: "A4", w: 595.276, h: 841.89 },  // 210 x 297 mm
+  };
 
-    layout.ops.forEach(function (op) {
+  // Keep the cards at least this far from the paper edge: home printers can't
+  // print right up to the edge, and the cut marks are drawn in this margin.
+  var SHEET_MIN_MARGIN = 28; // about 10 mm
+
+  // Where each card goes on a full sheet. Cards sit edge to edge (no gaps), so
+  // one cut separates two cards — the same grid as store-bought business-card
+  // sheets. A portrait page fits the most for both pairs: 2 x 5 = 10 cards.
+  function layoutSheet(sizeKey) {
+    var card = CARD_SIZES[sizeKey] || CARD_SIZES.us;
+    var paper = PAPER_SIZES[sizeKey] || PAPER_SIZES.us;
+    var cols = Math.floor((paper.w - 2 * SHEET_MIN_MARGIN) / card.w);
+    var rows = Math.floor((paper.h - 2 * SHEET_MIN_MARGIN) / card.h);
+    // Center the grid on the page.
+    var x0 = (paper.w - cols * card.w) / 2;
+    var y0 = (paper.h - rows * card.h) / 2;
+
+    var slots = [];
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        slots.push({ x: x0 + c * card.w, y: y0 + r * card.h });
+      }
+    }
+    return { paper: paper, card: card, cols: cols, rows: rows,
+             x0: x0, y0: y0, count: slots.length, slots: slots };
+  }
+
+  // Short cut marks in the margin, lined up with every cut line. They stay
+  // outside the cards, so a slightly-off cut never leaves a mark on a card.
+  function drawCutMarks(doc, sheet) {
+    var gap = 3, len = 12;
+    var x1 = sheet.x0 + sheet.cols * sheet.card.w;
+    var y1 = sheet.y0 + sheet.rows * sheet.card.h;
+    var c = hexToRgb(CARD_INK);
+    doc.setDrawColor(c.r, c.g, c.b);
+    doc.setLineWidth(0.4);
+
+    for (var col = 0; col <= sheet.cols; col++) {
+      var x = sheet.x0 + col * sheet.card.w;
+      doc.line(x, sheet.y0 - gap, x, sheet.y0 - gap - len); // above the grid
+      doc.line(x, y1 + gap, x, y1 + gap + len);             // below the grid
+    }
+    for (var row = 0; row <= sheet.rows; row++) {
+      var y = sheet.y0 + row * sheet.card.h;
+      doc.line(sheet.x0 - gap, y, sheet.x0 - gap - len, y); // left of the grid
+      doc.line(x1 + gap, y, x1 + gap + len, y);             // right of the grid
+    }
+  }
+
+  // Draw a card's layout into a jsPDF doc, shifted by (dx, dy) points — (0, 0)
+  // for a single-card page, or a slot's position on a full sheet.
+  function drawCardOps(doc, ops, dx, dy) {
+    ops.forEach(function (op) {
       var c = hexToRgb(op.color);
       if (op.type === "rect") {
         doc.setFillColor(c.r, c.g, c.b);
-        doc.rect(op.x, op.y, op.w, op.h, "F");
+        doc.rect(op.x + dx, op.y + dy, op.w, op.h, "F");
       } else if (op.type === "line") {
         doc.setDrawColor(c.r, c.g, c.b);
         doc.setLineWidth(op.width);
-        doc.line(op.x1, op.y1, op.x2, op.y2);
+        doc.line(op.x1 + dx, op.y1 + dy, op.x2 + dx, op.y2 + dy);
       } else if (op.type === "text") {
         // jsPDF shapes and right-to-left orders Arabic itself — just pick the
         // font and hand it the raw text.
         doc.setFont(op.font.family, op.font.style);
         doc.setFontSize(op.size);
         doc.setTextColor(c.r, c.g, c.b);
-        doc.text(op.text, op.x, op.y, { align: op.align });
+        doc.text(op.text, op.x + dx, op.y + dy, { align: op.align });
       } else if (op.type === "qr") {
         // Drawn as vector squares (not a pasted image) so it stays crisp in print.
         var count = op.qr.getModuleCount();
         var cell = op.size / (count + op.quiet * 2);
+        var qx = op.x + dx, qy = op.y + dy;
         doc.setFillColor(c.r, c.g, c.b);
         for (var r = 0; r < count; r++) {
           for (var col = 0; col < count; col++) {
             if (op.qr.isDark(r, col)) {
-              doc.rect(op.x + (col + op.quiet) * cell, op.y + (r + op.quiet) * cell, cell, cell, "F");
+              doc.rect(qx + (col + op.quiet) * cell, qy + (r + op.quiet) * cell, cell, cell, "F");
             }
           }
         }
       }
     });
+  }
 
+  // The PDF: either one card on a card-sized page, or (data.sheet) a full
+  // Letter / A4 page of identical cards with cut marks, for printing at home.
+  function buildPdf(data, qr) {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error("jsPDF library not loaded (lib/jspdf.umd.min.js).");
+    }
+    var layout = layoutCard(data, currentLang, qr);
+
+    if (!data.sheet) {
+      var single = new window.jspdf.jsPDF({
+        unit: "pt",
+        compress: true,
+        format: [layout.w, layout.h],
+        orientation: layout.w >= layout.h ? "landscape" : "portrait",
+      });
+      drawCardOps(single, layout.ops, 0, 0);
+      return single;
+    }
+
+    var sheet = layoutSheet(data.size);
+    var doc = new window.jspdf.jsPDF({
+      unit: "pt",
+      compress: true, // ten vector QR codes add up; compression keeps the file small
+      format: [sheet.paper.w, sheet.paper.h],
+      orientation: "portrait",
+    });
+    sheet.slots.forEach(function (slot) {
+      drawCardOps(doc, layout.ops, slot.x, slot.y);
+    });
+    drawCutMarks(doc, sheet);
     return doc;
   }
 
@@ -640,6 +732,22 @@
     try { qr = buildQrModel(buildVCard(shown)); } catch (e) { qr = null; }
 
     renderPreview(svg, layoutCard(shown, currentLang, qr));
+    updateLayoutHint(data);
+  }
+
+  // The hint under "PDF layout": what the chosen layout prints, e.g.
+  // "10 cards on one A4 page". Follows the card size and the language.
+  function updateLayoutHint(data) {
+    var hint = document.getElementById("pdf-layout-hint");
+    if (!hint) return;
+    if (data.sheet) {
+      var sheet = layoutSheet(data.size);
+      hint.textContent = t("hintSheet")
+        .replace("{count}", sheet.count)
+        .replace("{paper}", sheet.paper.name);
+    } else {
+      hint.textContent = t("hintSingle");
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -710,8 +818,12 @@
 
     var canvas = drawQrToCanvas(qr);
 
-    // The PDF business card is always produced (QR drawn as vector squares).
-    buildPdf(data, qr).save(base + "_card.pdf");
+    // The PDF business card is always produced (QR drawn as vector squares):
+    // one card, or a full sheet named after its paper (e.g. Robin_Doe_cards_A4.pdf).
+    var pdfName = data.sheet
+      ? base + "_cards_" + layoutSheet(data.size).paper.name + ".pdf"
+      : base + "_card.pdf";
+    buildPdf(data, qr).save(pdfName);
 
     // "All files" additionally downloads the QR .png and the .vcf.
     if (data.output === "all") {
@@ -796,6 +908,7 @@
     buildQrModel: buildQrModel,
     drawQrToCanvas: drawQrToCanvas,
     layoutCard: layoutCard,
+    layoutSheet: layoutSheet,
     buildPdf: buildPdf,
     safeBaseName: safeBaseName,
     downloadText: downloadText,

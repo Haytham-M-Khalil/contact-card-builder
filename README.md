@@ -15,6 +15,9 @@ form, pick a card size, and download.
 - **Live preview that matches the PDF**: it's drawn from the same layout as the printed
   card, real QR code included, and updates as you type.
 - **PDF business card** in standard sizes — US 3.5×2 in and EU/ISO 85×55 mm.
+- **Print at home**: choose a **full sheet of cards** instead of one card per page —
+  10 cards with cut marks on **US Letter** (for US cards) or **A4** (for EU cards).
+  Print at "Actual size" (100%), then cut along the marks.
 - **QR code** that encodes a vCard, so anyone can scan to save your contact. In the PDF
   it's drawn as **vector squares**, so it stays crisp at any print size.
 - **`.vcf` contact file** to import the contact directly into any phone or app.

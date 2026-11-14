@@ -117,6 +117,16 @@
               <option value="eu" data-i18n="sizeEu">EU / ISO — 85 × 55 mm</option>
             </select>
           </label>
+
+          <label class="field">
+            <span class="field__label" data-i18n="labelPdfLayout">PDF layout</span>
+            <select id="pdf-layout" name="pdf-layout" aria-describedby="pdf-layout-hint">
+              <option value="single" data-i18n="layoutSingle">One card per page</option>
+              <option value="sheet" data-i18n="layoutSheet">Full sheet of cards</option>
+            </select>
+            <!-- Filled by app.js (updateLayoutHint): card count + paper size. -->
+            <span class="field__hint" id="pdf-layout-hint">Exact card size, ready to send to a print shop.</span>
+          </label>
         </fieldset>
 
         <button type="submit" class="btn-primary" data-i18n="btnGenerate">Generate card</button>

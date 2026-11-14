@@ -256,6 +256,13 @@ select.is-invalid:focus {
   box-shadow: 0 0 0 3px #fef3f2;
 }
 
+.field__hint {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 .field-error {
   display: block;
   margin-top: 0.3rem;
