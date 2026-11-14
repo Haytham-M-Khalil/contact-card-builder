@@ -6,7 +6,7 @@ form, pick a card size, and download.
 
 **▶ Try it live: https://haytham-m-khalil.github.io/contact-card-builder/**
 
-![Contact Card Builder — form on the left, live card preview with QR on the right](docs/screenshot.png)
+![Contact Card Builder — the live card preview on a proofing board with crop marks and size rulers, the form on the right](docs/screenshot.png)
 
 ## Features
 
@@ -27,7 +27,9 @@ form, pick a card size, and download.
 - Choose whether your **links go into the QR code and `.vcf`** too. They always print on
   the card; leaving them out makes a simpler QR that older phones scan more reliably.
 - A toggle for **"PDF only"** vs **"all files"** (PDF + QR `.png` + `.vcf`).
-- Editable **accent color** and light inline **validation**.
+- **Accent color** from a row of print-friendly swatches, or any custom color.
+- **Light and dark mode** that follow your system setting (the card always stays white,
+  as it prints), plus light inline **validation**.
 
 The `.vcf` is the source of truth; the QR encodes the exact same vCard text, using plain
 `TEL` lines for maximum import compatibility across phones and apps.
@@ -39,7 +41,9 @@ The `.vcf` is the source of truth; the QR encodes the exact same vCard text, usi
 - Built on [jsPDF](https://github.com/parallax/jsPDF) and
   [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), plus the
   [Amiri](https://github.com/alif-type/amiri) Arabic font and the
-  [Arimo](https://github.com/googlefonts/Arimo) font — all **vendored locally** in
+  [Arimo](https://github.com/googlefonts/Arimo) font for the card, and
+  [Readex Pro](https://github.com/ThomasJockin/readexpro) for the app's own interface
+  (Latin + Arabic) — all **vendored locally** in
   [`lib/`](lib/) so the app is self-contained and works offline.
 - The card is laid out once, in PDF points. The PDF and the live preview (an SVG) both
   draw from that one layout. Arimo has the same character widths as the PDF's
