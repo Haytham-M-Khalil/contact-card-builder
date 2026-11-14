@@ -14,7 +14,8 @@ Guidance for working in this repo. Read this first.
 with a toggle for **"PDF only" vs "all files"**, a **card-size dropdown**
 (US 3.5×2 in and EU/ISO 85×55 mm), and a **PDF-layout dropdown**: one card per page
 (for a print shop) or a full sheet of 10 cards with cut marks for printing at home
-(US cards on Letter, EU cards on A4 — `layoutSheet()` in `app.js`).
+(US cards on Letter, EU cards on A4; a gap between columns and accent-bar bleed make
+hand cutting forgiving — `layoutSheet()` / `drawBleed()` in `app.js`).
 
 It is a browser re-implementation of the desktop Python script that originally
 produced these files (vCard → QR → PDF). The `.vcf` is the **source of truth**;

@@ -362,7 +362,11 @@
     text(t("scanCaption"), qx + qrSize / 2, qy + qrSize + 9, 5.4, false, CARD_GREY, "center");
 
     // --- Accent bar (right under RTL, left otherwise) ---
-    ops.push({ type: "rect", x: rtl ? W - 4 : 0, y: 0, w: 4, h: H, color: acc });
+    // `bleed` names the card edge the bar touches. On a full sheet the bar is
+    // extended a little past that edge (see drawBleed), so a slightly-off cut
+    // still leaves the color running right to the edge of the card.
+    ops.push({ type: "rect", x: rtl ? W - 4 : 0, y: 0, w: 4, h: H, color: acc,
+               bleed: rtl ? "right" : "left" });
 
     // Width available to the text column (between the start edge and the QR).
     var textWidth = rtl
@@ -424,47 +428,79 @@
   // print right up to the edge, and the cut marks are drawn in this margin.
   var SHEET_MIN_MARGIN = 28; // about 10 mm
 
-  // Where each card goes on a full sheet. Cards sit edge to edge (no gaps), so
-  // one cut separates two cards — the same grid as store-bought business-card
-  // sheets. A portrait page fits the most for both pairs: 2 x 5 = 10 cards.
+  // Space between the card columns. Without it, the cut between two columns
+  // runs right along the next card's accent bar, so missing by a millimeter
+  // shows. Rows stay touching: card tops and bottoms are blank and the bars
+  // line up, so an off cut there just makes a card a hair taller or shorter.
+  var SHEET_COLUMN_GAP = 17;   // about 6 mm
+  // How far the accent bar runs past the card edge, into the gap / margin.
+  var SHEET_BLEED = 5.67;      // 2 mm
+
+  // Where each card goes on a full sheet: columns with a gap between them,
+  // rows edge to edge. A portrait page fits the most for both pairs:
+  // 2 x 5 = 10 cards.
   function layoutSheet(sizeKey) {
     var card = CARD_SIZES[sizeKey] || CARD_SIZES.us;
     var paper = PAPER_SIZES[sizeKey] || PAPER_SIZES.us;
-    var cols = Math.floor((paper.w - 2 * SHEET_MIN_MARGIN) / card.w);
+    var gap = SHEET_COLUMN_GAP;
+    var cols = Math.floor((paper.w - 2 * SHEET_MIN_MARGIN + gap) / (card.w + gap));
     var rows = Math.floor((paper.h - 2 * SHEET_MIN_MARGIN) / card.h);
     // Center the grid on the page.
-    var x0 = (paper.w - cols * card.w) / 2;
-    var y0 = (paper.h - rows * card.h) / 2;
+    var gridW = cols * card.w + (cols - 1) * gap;
+    var gridH = rows * card.h;
+    var x0 = (paper.w - gridW) / 2;
+    var y0 = (paper.h - gridH) / 2;
+
+    var colX = [];
+    for (var c = 0; c < cols; c++) colX.push(x0 + c * (card.w + gap));
 
     var slots = [];
     for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
-        slots.push({ x: x0 + c * card.w, y: y0 + r * card.h });
-      }
+      colX.forEach(function (x) { slots.push({ x: x, y: y0 + r * card.h }); });
     }
-    return { paper: paper, card: card, cols: cols, rows: rows,
-             x0: x0, y0: y0, count: slots.length, slots: slots };
+    return { paper: paper, card: card, cols: cols, rows: rows, colX: colX,
+             x0: x0, y0: y0, gridW: gridW, gridH: gridH,
+             count: slots.length, slots: slots };
   }
 
-  // Short cut marks in the margin, lined up with every cut line. They stay
-  // outside the cards, so a slightly-off cut never leaves a mark on a card.
+  // Extend each accent bar past the card edge it touches ("bleed"), drawn
+  // under the cards. The bars of a column already line up into one stripe, so
+  // one tall strip per column also covers the top and bottom edges.
+  function drawBleed(doc, sheet, ops) {
+    var top = sheet.y0 - SHEET_BLEED;
+    var height = sheet.gridH + 2 * SHEET_BLEED;
+    ops.forEach(function (op) {
+      if (!op.bleed) return;
+      var c = hexToRgb(op.color);
+      doc.setFillColor(c.r, c.g, c.b);
+      sheet.colX.forEach(function (colX) {
+        var x = colX + op.x - (op.bleed === "left" ? SHEET_BLEED : 0);
+        doc.rect(x, top, op.w + SHEET_BLEED, height, "F");
+      });
+    });
+  }
+
+  // Short cut marks in the margin, lined up with every cut line: both edges
+  // of every column, and every row boundary. They start just past the bleed,
+  // so they never touch a card or the colored bars.
   function drawCutMarks(doc, sheet) {
-    var gap = 3, len = 12;
-    var x1 = sheet.x0 + sheet.cols * sheet.card.w;
-    var y1 = sheet.y0 + sheet.rows * sheet.card.h;
+    var offset = SHEET_BLEED + 2, len = 10;
+    var top = sheet.y0, bottom = sheet.y0 + sheet.gridH;
+    var left = sheet.x0, right = sheet.x0 + sheet.gridW;
     var c = hexToRgb(CARD_INK);
     doc.setDrawColor(c.r, c.g, c.b);
     doc.setLineWidth(0.4);
 
-    for (var col = 0; col <= sheet.cols; col++) {
-      var x = sheet.x0 + col * sheet.card.w;
-      doc.line(x, sheet.y0 - gap, x, sheet.y0 - gap - len); // above the grid
-      doc.line(x, y1 + gap, x, y1 + gap + len);             // below the grid
-    }
+    sheet.colX.forEach(function (colX) {
+      [colX, colX + sheet.card.w].forEach(function (x) {
+        doc.line(x, top - offset, x, top - offset - len);         // above the grid
+        doc.line(x, bottom + offset, x, bottom + offset + len);   // below the grid
+      });
+    });
     for (var row = 0; row <= sheet.rows; row++) {
-      var y = sheet.y0 + row * sheet.card.h;
-      doc.line(sheet.x0 - gap, y, sheet.x0 - gap - len, y); // left of the grid
-      doc.line(x1 + gap, y, x1 + gap + len, y);             // right of the grid
+      var y = top + row * sheet.card.h;
+      doc.line(left - offset, y, left - offset - len, y);         // left of the grid
+      doc.line(right + offset, y, right + offset + len, y);       // right of the grid
     }
   }
 
@@ -530,6 +566,7 @@
       format: [sheet.paper.w, sheet.paper.h],
       orientation: "portrait",
     });
+    drawBleed(doc, sheet, layout.ops);
     sheet.slots.forEach(function (slot) {
       drawCardOps(doc, layout.ops, slot.x, slot.y);
     });
