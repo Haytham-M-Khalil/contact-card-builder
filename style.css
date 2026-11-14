@@ -2,44 +2,117 @@
    Contact Card Builder — styles
    Plain CSS, no framework, no build step. 2-space indentation.
 
+   The idea: the card is shown as a print proof. It sits on a proofing board
+   with crop marks and size rulers (the "stage"); the form beside it is a quiet
+   order form (the "ticket"). Light mode is a daylit proofing table; dark mode
+   is a studio desk with the card under a soft light. The card stays white in
+   both, because that is how it prints.
+
+   The app's own colors never use the user's accent color — the accent is
+   theirs to pick, so it only appears on the card and in the swatches.
+
    Structure:
-     1. Design tokens (custom properties)
-     2. Base / reset
-     3. Layout (header + two-column)
-     4. Panels
-     5. Form controls
-     6. Repeatable rows (phones / links)
-     7. Segmented toggle + buttons
-     8. Card preview
-     9. Responsive
+     1. Design tokens (custom properties) + dark mode
+     2. Fonts
+     3. Base / reset
+     4. Workspace layout (stage + ticket)
+     5. Stage: brand, language toggle
+     6. Proof: card, crop marks, rulers
+     7. Ticket: form groups and fields
+     8. Repeatable rows (phones / links) + checkbox
+     9. Accent swatches
+    10. Segmented toggle + primary button
+    11. RTL adjustments
+    12. Responsive + reduced motion
    ============================================================================= */
 
 /* ----------------------------- 1. Tokens --------------------------------- */
 :root {
-  --accent: #732da0;        /* purple, matching the original card             */
-  --accent-strong: #5d2483; /* darker accent for hover/active                 */
-  --accent-tint: #f3ecf8;   /* very light accent wash for backgrounds         */
+  color-scheme: light;
 
-  --ink: #1c2230;           /* primary text                                   */
-  --muted: #6b7280;         /* secondary text                                 */
-  --line: #e4e7ec;          /* borders / dividers                             */
+  --paper: #ffffff;          /* the form surface (and the card)               */
+  --board: #dde1e5;          /* the proofing board behind the card            */
+  --board-glow: #dde1e5;     /* center of the board (flat in light mode)      */
+  --ink: #1d232b;            /* primary text                                  */
+  --ink-2: #525b67;          /* secondary text, crop marks, rulers            */
+  --line: #d3d8de;           /* dividers                                      */
+  --field: #ffffff;          /* input background                              */
+  --field-line: #8e97a2;     /* input border (3:1 against the paper)          */
+  --hover: #eef0f3;          /* subtle hover wash                             */
+  --error: #b42318;
 
-  --bg: #f5f6f8;            /* page background                                */
-  --surface: #ffffff;       /* panels / cards                                 */
+  --on-ink: #ffffff;         /* text on an ink-filled control                 */
+  --focus: #1d232b;          /* keyboard focus ring                           */
 
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px rgba(16, 24, 40, 0.06);
-  --shadow-card: 0 6px 24px rgba(16, 24, 40, 0.12);
+  /* The card's own shadow: a thin contact shadow plus a soft lift, so it reads
+     as a physical card resting on the board. Nothing else in the UI has one. */
+  --card-shadow: 0 1px 1px rgba(20, 26, 34, 0.12), 0 14px 30px -12px rgba(20, 26, 34, 0.35);
 
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius: 6px;
+  --font: "Readex Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Type scale (major second, 16px base). */
+  --step--1: 0.8125rem;      /* hints, notes                                  */
+  --step-0: 0.9375rem;       /* labels, controls                              */
+  --step-1: 1.0625rem;       /* section headings                              */
+  --step-2: 1.25rem;         /* app name                                      */
 }
 
-/* Amiri — the same Arabic font the PDF embeds, so the preview matches it.
-   Vendored in lib/ (see lib/README.md). The subset holds only Arabic glyphs and
-   the unicode-range limits it to Arabic script, so Latin runs (phone numbers,
-   email, links) fall through to the sans stack — exactly like the PDF, which
-   draws Arabic in Amiri and Latin in Helvetica. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --paper: #1e2227;
+    --board: #24282e;
+    --board-glow: #3a4048;   /* the "desk lamp" pool of light behind the card */
+    --ink: #e8ebee;
+    --ink-2: #a7b0bb;
+    --line: #353b43;
+    --field: #171a1e;
+    --field-line: #6b7480;
+    --hover: #2a2f36;
+    --error: #f97066;
+
+    --on-ink: #1d232b;
+    --focus: #e8ebee;
+
+    --card-shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 18px 40px -12px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* ------------------------------ 2. Fonts --------------------------------- */
+/* Readex Pro — the app UI font. One variable file per script (weights
+   160–700), with matching Latin and Arabic designs so both languages feel
+   like the same product. Vendored in lib/ (see lib/README.md). */
+@font-face {
+  font-family: "Readex Pro";
+  src: url("lib/readex-pro-latin-wght.woff2") format("woff2");
+  font-weight: 160 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Readex Pro";
+  src: url("lib/readex-pro-arabic-wght.woff2") format("woff2");
+  font-weight: 160 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1,
+    U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF,
+    U+FE70-FE74, U+FE76-FEFC;
+}
+
+/* The two fonts below are used ONLY on the card preview (the SVG sets them
+   per text element), so the preview matches the PDF exactly.
+
+   Amiri — the same Arabic font the PDF embeds. The subset holds only Arabic
+   glyphs and the unicode-range limits it to Arabic script, so Latin runs
+   (phone numbers, email, links) fall through to Arimo — exactly like the PDF,
+   which draws Arabic in Amiri and Latin in Helvetica. */
 @font-face {
   font-family: "Amiri";
   src: url("lib/amiri-regular.woff2") format("woff2");
@@ -50,9 +123,8 @@
     U+FB50-FDFF, U+FE70-FEFF, U+200C-200E;
 }
 
-/* Arimo — used only on the card preview. Its character widths are identical
-   to Helvetica, the font the PDF uses, so every line on the preview is exactly
-   as long as it prints. Vendored in lib/ (Latin subset; see lib/README.md). */
+/* Arimo — its character widths are identical to Helvetica, the font the PDF
+   uses, so every line on the preview is exactly as long as it prints. */
 @font-face {
   font-family: "Arimo";
   src: url("lib/arimo-regular.woff2") format("woff2");
@@ -69,7 +141,7 @@
   font-display: swap;
 }
 
-/* ------------------------------ 2. Base ---------------------------------- */
+/* ------------------------------ 3. Base ---------------------------------- */
 * {
   box-sizing: border-box;
 }
@@ -81,114 +153,296 @@ html {
 body {
   margin: 0;
   font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.5;
   color: var(--ink);
-  background: var(--bg);
-  line-height: 1.55;
+  background: var(--paper);
 }
 
-h1, h2, p, ul, fieldset, legend {
+h1, h2, p, fieldset, legend, figure {
   margin: 0;
 }
 
-ul {
-  padding: 0;
-  list-style: none;
-}
-
-/* --------------------------- 3. Layout ----------------------------------- */
-.app-header {
-  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  color: #fff;
-}
-
-.app-header__inner {
-  position: relative;
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 2.25rem 1.25rem 2.5rem;
-}
-
-.lang-toggle {
-  position: absolute;
-  top: 1.25rem;
-  inset-inline-end: 1.25rem;
+button,
+input,
+select {
   font: inherit;
-  font-size: 0.85rem;
+  color: inherit;
+}
+
+/* Hidden on screen, still read by screen readers. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* One focus style for every control: a solid ring in ink, never the accent. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ------------------------- 4. Workspace layout --------------------------- */
+/* Desktop: the stage (board + card) fills the start side and stays put while
+   the form on the end side scrolls. The grid flips under dir="rtl". */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(24rem, 31rem);
+  min-height: 100vh;
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem clamp(1.5rem, 4vw, 3.5rem) 2rem;
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 52%, var(--board-glow), transparent 100%),
+    var(--board);
+}
+
+.ticket {
+  background: var(--paper);
+  border-inline-start: 1px solid var(--line);
+}
+
+/* ------------------------ 5. Stage header -------------------------------- */
+.stage__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.brand__mark {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  margin-top: 0.1rem;
+  color: var(--ink);
+}
+
+.brand__name {
+  font-size: var(--step-2);
   font-weight: 600;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: var(--radius-sm);
-  padding: 0.35rem 0.7rem;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.lang-toggle:hover {
-  background: rgba(255, 255, 255, 0.28);
-}
-
-.app-title {
-  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem);
-  font-weight: 700;
+  line-height: 1.25;
   letter-spacing: -0.01em;
 }
 
-.tagline {
-  margin-top: 0.4rem;
-  color: rgba(255, 255, 255, 0.85);
+.brand__tagline {
+  max-width: 44ch;
+  margin-top: 0.15rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.lang-toggle {
+  flex: 0 0 auto;
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--ink-2);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+}
+
+.lang-toggle:hover {
+  background: var(--paper);
+}
+
+/* ------------------- 6. Proof: card, crop marks, rulers ------------------ */
+.proof {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4.5rem;  /* leaves room for the width ruler under the card */
+  min-height: 0;
+  color: var(--ink-2);  /* marks and rulers draw in currentColor */
+
+  /* Card aspect ratio, used to keep the card inside short screens. */
+  --aspect: 1.75;       /* US: 3.5 × 2 in */
+  --mark-gap: 8px;      /* space between the card edge and a crop mark */
+  --mark-len: 18px;
+  --mark: calc(var(--mark-gap) + var(--mark-len));
+  --ruler-offset: 2.25rem;
+}
+
+.proof[data-size="eu"] {
+  --aspect: 1.5455;     /* EU / ISO: 85 × 55 mm */
+}
+
+/* Wraps the card exactly, so the marks and rulers can be placed around it. */
+.proof__frame {
+  position: relative;
+  /* As wide as possible, but never so tall the stage would overflow. */
+  width: min(100% - 2 * var(--ruler-offset) - 1rem, 38rem, (100dvh - 17rem) * var(--aspect));
+}
+
+.card {
+  background: #fff;   /* always white: the card prints on white stock */
+  box-shadow: var(--card-shadow);
+}
+
+.card svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Crop marks. Each corner box sits just outside the card; two 1px lines drawn
+   as backgrounds continue the card's edges outward, leaving a small gap — the
+   same marks a print shop cuts along (and that the full-sheet PDF prints). */
+.crop {
+  position: absolute;
+  width: var(--mark);
+  height: var(--mark);
+  --h: linear-gradient(currentColor, currentColor) no-repeat;
+}
+
+.crop--tl {
+  top: calc(-1 * var(--mark));
+  left: calc(-1 * var(--mark));
+  background:
+    var(--h) left bottom / var(--mark-len) 1px,
+    var(--h) right top / 1px var(--mark-len);
+}
+
+.crop--tr {
+  top: calc(-1 * var(--mark));
+  left: 100%;
+  background:
+    var(--h) right bottom / var(--mark-len) 1px,
+    var(--h) left top / 1px var(--mark-len);
+}
+
+.crop--bl {
+  top: 100%;
+  left: calc(-1 * var(--mark));
+  background:
+    var(--h) left top / var(--mark-len) 1px,
+    var(--h) right bottom / 1px var(--mark-len);
+}
+
+.crop--br {
+  top: 100%;
+  left: 100%;
+  background:
+    var(--h) right top / var(--mark-len) 1px,
+    var(--h) left bottom / 1px var(--mark-len);
+}
+
+/* Rulers: a dimension line with end ticks and the real size in the middle.
+   The line is the ::before/::after pair on either side of the label. */
+.ruler {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ruler::before,
+.ruler::after {
+  content: "";
+  flex: 1 1 auto;
+  background: currentColor;
+}
+
+.ruler--width {
+  inset-inline: 0;
+  top: calc(100% + var(--ruler-offset));
+  height: 9px;
+  border-inline: 1px solid currentColor;
+}
+
+.ruler--width::before,
+.ruler--width::after {
+  height: 1px;
+}
+
+/* The height ruler stands on the inline-end side of the card; its label is
+   turned to run along it. */
+.ruler--height {
+  inset-block: 0;
+  inset-inline-start: calc(100% + var(--ruler-offset));
+  width: 9px;
+  flex-direction: column;
+  border-block: 1px solid currentColor;
+}
+
+.ruler--height::before,
+.ruler--height::after {
+  width: 1px;
+}
+
+.ruler--height > span {
+  writing-mode: vertical-rl;
+}
+
+.proof__note {
   max-width: 46ch;
+  font-size: var(--step--1);
+  text-align: center;
+  color: var(--ink-2);
 }
 
-.layout {
-  max-width: 1040px;
-  margin: -1.25rem auto 3rem;
-  padding: 0 1.25rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 1.25rem;
-  align-items: start;
+/* --------------------- 7. Ticket: form groups + fields ------------------- */
+.ticket__body {
+  padding: 0.5rem clamp(1.25rem, 3vw, 2.25rem) 1rem;
 }
 
-/* --------------------------- 4. Panels ----------------------------------- */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-}
-
-.panel__heading {
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin-bottom: 1.1rem;
-}
-
-.preview-panel {
-  position: sticky;
-  top: 1.25rem;
-}
-
-/* ------------------------- 5. Form controls ------------------------------ */
 .field-group {
+  min-width: 0;
   border: none;
-  padding: 0;
-  margin: 0 0 1.4rem;
+  padding: 1.75rem 0;
 }
 
+.field-group + .field-group {
+  border-top: 1px solid var(--line);
+}
+
+/* Floating the legend takes it out of the fieldset border, so it behaves like
+   an ordinary heading; the next element clears it. */
 .field-group > legend {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  margin-bottom: 0.6rem;
+  float: inline-start;
+  width: 100%;
+  padding: 0;
+  margin-bottom: 1rem;
+  font-size: var(--step-1);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.field-group > legend + * {
+  clear: both;
 }
 
 .field {
   display: block;
-  margin-bottom: 0.7rem;
+  margin-bottom: 1rem;
 }
 
 .field:last-child {
@@ -197,19 +451,9 @@ ul {
 
 .field__label {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 0.3rem;
-}
-
-.field--inline {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.field--inline .field__label {
-  margin-bottom: 0;
+  margin-bottom: 0.35rem;
+  font-size: var(--step-0);
+  font-weight: 500;
 }
 
 input[type="text"],
@@ -217,75 +461,73 @@ input[type="tel"],
 input[type="email"],
 select {
   width: 100%;
-  font: inherit;
+  min-height: 2.75rem;
+  font-size: var(--step-0);
   color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 0.55rem 0.7rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: var(--field);
+  border: 1px solid var(--field-line);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.75rem;
 }
 
 input::placeholder {
-  color: #9aa1ac;
+  color: var(--ink-2);
+  opacity: 0.75;
 }
 
-input:focus,
-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-tint);
+input[type="text"]:hover,
+input[type="tel"]:hover,
+input[type="email"]:hover,
+select:hover {
+  border-color: var(--ink-2);
 }
 
+input[type="text"]:focus-visible,
+input[type="tel"]:focus-visible,
+input[type="email"]:focus-visible,
+select:focus-visible {
+  outline-offset: 0;
+  border-color: var(--focus);
+}
+
+/* The arrow is a small inline SVG in a mid grey that reads on both light and
+   dark fields; it moves to the other side under RTL (section 11). */
 select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  cursor: pointer;
+  padding-inline-end: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23808a96' stroke-width='1.6' d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  padding-right: 2rem;
+  background-size: 12px 8px;
+  background-position: right 0.85rem center;
 }
 
 input.is-invalid,
 select.is-invalid {
-  border-color: #f0a39c;
-}
-
-input.is-invalid:focus,
-select.is-invalid:focus {
-  border-color: #d92d20;
-  box-shadow: 0 0 0 3px #fef3f2;
+  border-color: var(--error);
 }
 
 .field__hint {
   display: block;
-  margin-top: 0.3rem;
-  font-size: 0.78rem;
-  color: var(--muted);
+  margin-top: 0.4rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
 }
 
 .field-error {
   display: block;
-  margin-top: 0.3rem;
-  font-size: 0.78rem;
-  color: #b42318;
+  margin-top: 0.4rem;
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--error);
 }
 
-input[type="color"] {
-  width: 44px;
-  height: 32px;
-  padding: 2px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  cursor: pointer;
-}
-
-/* --------------------- 6. Repeatable rows (phones/links) ----------------- */
+/* ------------- 8. Repeatable rows (phones / links) + checkbox ------------ */
 .repeat-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.5rem;
 }
 
 .repeat-row {
@@ -301,93 +543,138 @@ input[type="color"] {
 .repeat-row .phone-number,
 .repeat-row .link-url {
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 .row-remove {
   flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  font-size: 1.1rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.25rem;
   line-height: 1;
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 .row-remove:hover {
-  color: #b42318;
-  border-color: #f0c2bd;
-  background: #fef3f2;
+  color: var(--error);
+  background: var(--hover);
 }
 
 .row-add {
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: var(--step-0);
+  font-weight: 500;
+  color: var(--ink);
   background: none;
   border: none;
-  padding: 0.2rem 0;
+  border-radius: var(--radius);
+  padding: 0.35rem 0;
   cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 0.3em;
 }
 
 .row-add:hover {
-  color: var(--accent-strong);
-  text-decoration: underline;
+  text-decoration-color: currentColor;
 }
 
 /* Checkbox with a label and a one-line hint underneath. */
 .check {
   display: flex;
   align-items: flex-start;
-  gap: 0.55rem;
-  margin-top: 0.85rem;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
   cursor: pointer;
 }
 
 .check input {
   flex: 0 0 auto;
-  width: 1rem;
-  height: 1rem;
+  width: 1.1rem;
+  height: 1.1rem;
   margin: 0.2rem 0 0;
-  accent-color: var(--accent);
+  accent-color: var(--ink);
   cursor: pointer;
-}
-
-.check input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .check__label {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: var(--step-0);
+  font-weight: 500;
 }
 
 .check__hint {
   display: block;
-  margin-top: 0.1rem;
-  font-size: 0.78rem;
-  color: var(--muted);
+  margin-top: 0.15rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
 }
 
-/* --------------------- 7. Segmented toggle + buttons --------------------- */
+/* --------------------------- 9. Accent swatches -------------------------- */
+/* Round chips of ink, each a radio button. The chosen one gets a ring with a
+   gap, like a selected ink on a press swatch book. */
+/* Nine equal columns, so the row shrinks to fit a phone instead of wrapping. */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 2.25rem));
+  gap: 0.6rem;
+}
+
+.swatch {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--swatch);
+  /* A faint inner edge keeps dark chips visible on the dark paper. */
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.35);
+  cursor: pointer;
+}
+
+.swatch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.swatch:has(input:checked),
+.swatch--custom.is-active {
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink);
+}
+
+.swatch:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 6px;
+}
+
+/* The last chip opens the color picker. Until a custom color is chosen it
+   shows a color wheel; after that it shows the chosen color. */
+.swatch--custom {
+  background: conic-gradient(#d33, #d93, #9c3, #3a6, #39c, #63c, #c3a, #d33);
+}
+
+.swatch--custom.is-active {
+  background: var(--swatch);
+}
+
+/* ---------------- 10. Segmented toggle + primary button ------------------ */
 .segmented {
   display: flex;
-  gap: 0.4rem;
-  padding: 0.25rem;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  margin-bottom: 0.9rem;
+  border: 1px solid var(--field-line);
+  border-radius: var(--radius);
+  padding: 3px;
+  gap: 3px;
 }
 
 .segmented__option {
   flex: 1 1 0;
+  position: relative;
 }
 
 .segmented__option input {
@@ -399,73 +686,60 @@ input[type="color"] {
 .segmented__option span {
   display: block;
   text-align: center;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  padding: 0.45rem 0.5rem;
-  border-radius: 6px;
+  font-size: var(--step-0);
+  font-weight: 500;
+  color: var(--ink-2);
+  padding: 0.5rem 0.5rem;
+  border-radius: calc(var(--radius) - 2px);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.segmented__option span:hover {
+  color: var(--ink);
+  background: var(--hover);
 }
 
 .segmented__option input:checked + span {
-  background: var(--surface);
-  color: var(--accent);
-  box-shadow: var(--shadow);
+  color: var(--on-ink);
+  background: var(--ink);
 }
 
 .segmented__option input:focus-visible + span {
-  box-shadow: 0 0 0 3px var(--accent-tint);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* The download bar stays at the bottom of the screen while the form scrolls. */
+.ticket__actions {
+  position: sticky;
+  bottom: 0;
+  padding: 1rem clamp(1.25rem, 3vw, 2.25rem) 1.25rem;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
 }
 
 .btn-primary {
   width: 100%;
-  font: inherit;
-  font-weight: 700;
-  color: #fff;
-  background: var(--accent);
+  min-height: 3rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--on-ink);
+  background: var(--ink);
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.7rem 1rem;
-  margin-top: 0.4rem;
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.05s ease;
 }
 
 .btn-primary:hover {
-  background: var(--accent-strong);
+  opacity: 0.88;
 }
 
 .btn-primary:active {
   transform: translateY(1px);
 }
 
-/* -------------------------- 8. Card preview ------------------------------ */
-/* The card itself is an <svg> drawn by app.js (renderPreview) from the exact
-   same layout the PDF is built from. Its viewBox is the card in PDF points, so
-   the browser scales everything uniformly — no per-element metrics live here.
-   This box only frames it: a 1px ring (drawn as a shadow, so it takes no space
-   from the card) and a soft drop shadow. */
-.card {
-  background: #fff;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
-  overflow: hidden;
-}
-
-.card svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.preview-note {
-  margin-top: 1rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-/* --------------------------- RTL adjustments ----------------------------- */
+/* --------------------------- 11. RTL adjustments ------------------------- */
 /* Emails, phone numbers and links are always written left-to-right. */
 input[type="tel"],
 input[type="email"],
@@ -473,21 +747,83 @@ input[type="email"],
   direction: ltr;
 }
 
-/* Move the native select arrow to the start side under RTL. */
-[dir="rtl"] select {
-  background-position: left 0.75rem center;
-  padding-right: 0.7rem;
-  padding-left: 2rem;
+/* In Arabic they still start from the right edge, like the text around them. */
+[dir="rtl"] input[type="tel"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] .link-url {
+  text-align: right;
 }
 
-/* --------------------------- 9. Responsive ------------------------------- */
-@media (max-width: 860px) {
-  .layout {
+/* Move the select arrow to the start side under RTL. */
+[dir="rtl"] select {
+  background-position: left 0.85rem center;
+}
+
+/* ------------------- 12. Responsive + reduced motion --------------------- */
+@media (max-width: 960px) {
+  /* Stack: card on top (not sticky), form below. */
+  .workspace {
     grid-template-columns: 1fr;
   }
 
-  .preview-panel {
+  .stage {
     position: static;
-    order: -1; /* show the card above the form on narrow screens */
+    height: auto;
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .proof {
+    padding-block: 3rem 0;
+  }
+
+  .proof__frame {
+    width: min(100% - 2 * var(--ruler-offset) - 1rem, 34rem);
+  }
+
+  .ticket {
+    border-inline-start: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .proof {
+    --mark-gap: 5px;
+    --mark-len: 12px;
+    --ruler-offset: 1.5rem;
+    gap: 3.5rem;
+  }
+
+  .brand__tagline {
+    display: none;
+  }
+
+  .swatches {
+    gap: 0.45rem;
+  }
+
+  .repeat-row .phone-label {
+    flex-basis: 36%;
+  }
+}
+
+/* One moment of motion: the card settles onto the board when the page opens. */
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    animation: card-settle 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  @keyframes card-settle {
+    from {
+      opacity: 0;
+      transform: translateY(-10px) scale(1.015);
+    }
+  }
+
+  .segmented__option span,
+  .swatch,
+  .row-remove,
+  input,
+  select {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   }
 }

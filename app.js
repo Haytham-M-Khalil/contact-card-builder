@@ -29,24 +29,33 @@
       legendPhones: "Phone numbers",
       phName: "Robin Doe",
       phTitle: "Product Designer",
-      phPhoneLabel: "Label (e.g. WhatsApp)",
+      phPhoneLabel: "Label",
       phPhone1: "+1 555 0188",
       phPhone2: "+1 555 0123",
       phEmail: "robin.doe@example.com",
       // Suggestions offered in the phone-label field (free text still allowed).
       phoneLabelPresets: ["WhatsApp", "Mobile", "Work", "Home", "Telegram", "Signal"],
       addPhone: "+ Add phone",
-      legendContact: "Contact",
+      legendContact: "Email and links",
       labelEmail: "Email",
-      legendLinks: "Links",
+      labelLinks: "Links",
       addLink: "+ Add link",
       labelLinksInQr: "Save links in the QR code and contact file",
       hintLinksInQr: "Links always print on the card. Untick for a simpler QR that older phones scan more reliably.",
-      legendAppearance: "Appearance",
       labelAccent: "Accent color",
-      legendOutput: "Output",
+      colorPurple: "Purple",
+      colorNavy: "Navy",
+      colorBlue: "Blue",
+      colorTeal: "Teal",
+      colorGreen: "Green",
+      colorCrimson: "Crimson",
+      colorAmber: "Amber",
+      colorGraphite: "Graphite",
+      colorCustom: "Custom color",
+      legendOutput: "Print and download",
+      labelFiles: "Files",
       optPdfOnly: "PDF only",
-      optAllFiles: "All files (PDF + QR + vCard)",
+      optAllFiles: "PDF + QR + vCard",
       labelCardSize: "Card size",
       sizeUs: "US business card — 3.5 × 2 in",
       sizeEu: "EU / ISO — 85 × 55 mm",
@@ -56,10 +65,17 @@
       hintSingle: "Exact card size, ready to send to a print shop.",
       // {count} and {paper} are filled in by updateLayoutHint().
       hintSheet: "{count} cards on one {paper} page, with cut marks. Print at Actual size (100%), then cut along the marks.",
-      btnGenerate: "Generate card",
+      // The download button names exactly what it downloads.
+      btnDownloadPdf: "Download PDF",
+      btnDownloadAll: "Download PDF, QR and vCard",
       previewHeading: "Preview",
       scanCaption: "Scan to save my contact",
-      previewNote: "Live preview, drawn from the same layout as the PDF — what you see is what prints. Click “Generate card” to download your files.",
+      previewNote: "Drawn from the same layout as the PDF, so what you see is what prints.",
+      // The rulers around the preview card: its real width and height.
+      rulerUsWidth: "3.5 in",
+      rulerUsHeight: "2 in",
+      rulerEuWidth: "85 mm",
+      rulerEuHeight: "55 mm",
       previewName: "Your Name",
       errName: "Please enter a name.",
       errEmail: "That email doesn't look right.",
@@ -74,23 +90,32 @@
       legendPhones: "أرقام الهاتف",
       phName: "فلان الفلاني",
       phTitle: "مصمم منتجات",
-      phPhoneLabel: "التسمية (مثل واتساب)",
+      phPhoneLabel: "التسمية",
       phPhone1: "+970500000000",
       phPhone2: "+970511111111",
       phEmail: "flan@example.com",
       phoneLabelPresets: ["واتساب", "موبايل", "عمل", "منزل", "تيليجرام", "سيجنال"],
       addPhone: "+ إضافة هاتف",
-      legendContact: "وسائل التواصل",
+      legendContact: "البريد والروابط",
       labelEmail: "البريد الإلكتروني",
-      legendLinks: "الروابط",
+      labelLinks: "الروابط",
       addLink: "+ إضافة رابط",
       labelLinksInQr: "حفظ الروابط في رمز QR وملف جهة الاتصال",
       hintLinksInQr: "تُطبع الروابط على البطاقة دائمًا. ألغِ التحديد للحصول على رمز QR أبسط تقرؤه الهواتف القديمة بسهولة أكبر.",
-      legendAppearance: "المظهر",
       labelAccent: "اللون المميز",
-      legendOutput: "المخرجات",
+      colorPurple: "بنفسجي",
+      colorNavy: "كحلي",
+      colorBlue: "أزرق",
+      colorTeal: "تركوازي",
+      colorGreen: "أخضر",
+      colorCrimson: "قرمزي",
+      colorAmber: "كهرماني",
+      colorGraphite: "رمادي فحمي",
+      colorCustom: "لون مخصص",
+      legendOutput: "الطباعة والتنزيل",
+      labelFiles: "الملفات",
       optPdfOnly: "ملف PDF فقط",
-      optAllFiles: "كل الملفات (PDF + QR + vCard)",
+      optAllFiles: "PDF و QR و vCard",
       labelCardSize: "حجم البطاقة",
       sizeUs: "بطاقة أمريكية — 3.5 × 2 إنش",
       sizeEu: "أوروبية / ISO — 85 × 55 مم",
@@ -99,10 +124,15 @@
       layoutSheet: "ورقة كاملة من البطاقات",
       hintSingle: "بالمقاس الفعلي للبطاقة، جاهز لإرساله إلى المطبعة.",
       hintSheet: "{count} بطاقات على صفحة {paper} واحدة مع علامات القص. اطبعها بالحجم الفعلي (100%) ثم قُصّ على العلامات.",
-      btnGenerate: "إنشاء البطاقة",
+      btnDownloadPdf: "تنزيل ملف PDF",
+      btnDownloadAll: "تنزيل PDF و QR و vCard",
       previewHeading: "معاينة",
       scanCaption: "امسح لحفظ جهة الاتصال",
-      previewNote: "معاينة حية مرسومة بنفس تخطيط ملف PDF — ما تراه هو ما سيُطبع. اضغط «إنشاء البطاقة» لتنزيل ملفاتك.",
+      previewNote: "مرسومة بنفس تخطيط ملف PDF، فما تراه هو ما سيُطبع.",
+      rulerUsWidth: "3.5 إنش",
+      rulerUsHeight: "2 إنش",
+      rulerEuWidth: "85 مم",
+      rulerEuHeight: "55 مم",
       previewName: "اسمك",
       errName: "يرجى إدخال الاسم.",
       errEmail: "يبدو أن البريد الإلكتروني غير صحيح.",
@@ -787,6 +817,61 @@
 
     renderPreview(svg, layoutCard(shown, currentLang, qr));
     updateLayoutHint(data);
+    updateRulers(data);
+    updateDownloadLabel(data);
+  }
+
+  // The rulers around the preview card show its real printed size.
+  function updateRulers(data) {
+    var proof = document.getElementById("proof");
+    var width = document.getElementById("ruler-width");
+    var height = document.getElementById("ruler-height");
+    if (!proof || !width || !height) return;
+    var eu = data.size === "eu";
+    proof.setAttribute("data-size", eu ? "eu" : "us");
+    width.textContent = t(eu ? "rulerEuWidth" : "rulerUsWidth");
+    height.textContent = t(eu ? "rulerEuHeight" : "rulerUsHeight");
+  }
+
+  // The button says exactly what it will download: just the PDF, or all three.
+  function updateDownloadLabel(data) {
+    var btn = document.getElementById("download-btn");
+    if (!btn) return;
+    btn.textContent = t(data.output === "pdf" ? "btnDownloadPdf" : "btnDownloadAll");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Accent swatches: picking a chip copies its color into the #accent color
+  // input (which readForm uses); picking a custom color in #accent selects the
+  // matching chip, or marks the custom chip as active if none match.
+  // ---------------------------------------------------------------------------
+  function wireSwatches() {
+    var accent = document.getElementById("accent");
+    var custom = document.getElementById("swatch-custom");
+    var chips = document.querySelectorAll('input[name="accent-swatch"]');
+    if (!accent || !custom) return;
+
+    function syncChips() {
+      var value = accent.value.toLowerCase();
+      var matched = false;
+      chips.forEach(function (chip) {
+        chip.checked = chip.value.toLowerCase() === value;
+        if (chip.checked) matched = true;
+      });
+      custom.classList.toggle("is-active", !matched);
+      custom.style.setProperty("--swatch", accent.value);
+    }
+
+    chips.forEach(function (chip) {
+      // Runs before the form's own change listener, so the preview sees the
+      // new color.
+      chip.addEventListener("change", function () {
+        accent.value = chip.value;
+        syncChips();
+      });
+    });
+    accent.addEventListener("input", syncChips);
+    syncChips();
   }
 
   // The hint under "PDF layout": what the chosen layout prints, e.g.
@@ -851,7 +936,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 9. Wire up the form. "Generate card" always produces the PDF and refreshes
+  // 9. Wire up the form. The download button always produces the PDF and refreshes
   //    the preview; the PDF-only/all-files toggle decides whether the QR .png
   //    and .vcf are downloaded too.
   // ---------------------------------------------------------------------------
@@ -918,7 +1003,10 @@
     });
 
     var toggle = document.getElementById("lang-toggle");
-    if (toggle) toggle.textContent = currentLang === "en" ? "العربية" : "English";
+    if (toggle) {
+      toggle.textContent = currentLang === "en" ? "العربية" : "English";
+      toggle.lang = currentLang === "en" ? "ar" : "en";  // so screen readers pronounce it right
+    }
 
     // Refresh the preview so the empty-state sample matches the new language.
     syncPreview();
@@ -939,6 +1027,7 @@
     }
     wireRepeatList("phone-list", "add-phone");
     wireRepeatList("link-list", "add-link");
+    wireSwatches();
 
     var saved = null;
     try { saved = localStorage.getItem("ccb-lang"); } catch (e) {}

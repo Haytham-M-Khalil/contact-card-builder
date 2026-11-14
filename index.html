@@ -3,133 +3,184 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
   <title>Contact Card Builder</title>
   <meta name="description" content="Generate a print-ready PDF business card, QR code, and vCard — right in your browser. No backend, no signup." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="app-header">
-    <div class="app-header__inner">
-      <button type="button" id="lang-toggle" class="lang-toggle">العربية</button>
-      <h1 class="app-title" data-i18n="appTitle">Contact Card Builder</h1>
-      <p class="tagline" data-i18n="tagline">Make a print-ready business card, QR code, and contact file — all in your browser.</p>
-    </div>
-  </header>
+  <main class="workspace">
+    <!-- ======================= STAGE: the card as a print proof ======================= -->
+    <!-- The card sits on a proofing board with crop marks and size rulers. The marks
+         and rulers only frame the card; the card itself is drawn by app.js. -->
+    <section class="stage" aria-labelledby="preview-heading">
+      <header class="stage__header">
+        <div class="brand">
+          <!-- Logo: a card with crop marks at its corners. -->
+          <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect x="7" y="9" width="18" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="2" />
+            <path d="M7 2v4M7 26v4M25 2v4M25 26v4M0 9h4M0 23h4M28 9h4M28 23h4" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          <div>
+            <h1 class="brand__name" data-i18n="appTitle">Contact Card Builder</h1>
+            <p class="brand__tagline" data-i18n="tagline">Make a print-ready business card, QR code, and contact file — all in your browser.</p>
+          </div>
+        </div>
+        <button type="button" id="lang-toggle" class="lang-toggle" lang="ar">العربية</button>
+      </header>
 
-  <main class="layout">
+      <h2 id="preview-heading" class="visually-hidden" data-i18n="previewHeading">Preview</h2>
+
+      <figure class="proof" id="proof" data-size="us">
+        <div class="proof__frame">
+          <!-- Drawn by app.js (renderPreview) from the same layout as the PDF. -->
+          <div class="card" id="card-preview">
+            <svg role="img" aria-label="Business card preview" viewBox="0 0 252 144" direction="ltr"></svg>
+          </div>
+          <span class="crop crop--tl" aria-hidden="true"></span>
+          <span class="crop crop--tr" aria-hidden="true"></span>
+          <span class="crop crop--bl" aria-hidden="true"></span>
+          <span class="crop crop--br" aria-hidden="true"></span>
+          <!-- Rulers: filled by app.js (updateRulers) with the card's real size. -->
+          <span class="ruler ruler--width" aria-hidden="true"><span id="ruler-width">3.5 in</span></span>
+          <span class="ruler ruler--height" aria-hidden="true"><span id="ruler-height">2 in</span></span>
+        </div>
+        <figcaption class="proof__note" data-i18n="previewNote">Drawn from the same layout as the PDF, so what you see is what prints.</figcaption>
+      </figure>
+    </section>
+
     <!-- ============================== FORM ============================== -->
-    <section class="panel form-panel" aria-labelledby="form-heading">
-      <h2 id="form-heading" class="panel__heading" data-i18n="formHeading">Your details</h2>
+    <section class="ticket" aria-labelledby="form-heading">
+      <h2 id="form-heading" class="visually-hidden" data-i18n="formHeading">Your details</h2>
 
       <form id="card-form" autocomplete="on" novalidate>
-        <fieldset class="field-group">
-          <legend data-i18n="legendIdentity">Identity</legend>
+        <div class="ticket__body">
+          <fieldset class="field-group">
+            <legend data-i18n="legendIdentity">Identity</legend>
 
-          <label class="field">
-            <span class="field__label" data-i18n="labelName">Full name</span>
-            <input type="text" id="name" name="name" data-i18n-ph="phName" placeholder="Robin Doe" />
-          </label>
-
-          <label class="field">
-            <span class="field__label" data-i18n="labelTitle">Title / role</span>
-            <input type="text" id="title" name="title" data-i18n-ph="phTitle" placeholder="Product Designer" />
-          </label>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend data-i18n="legendPhones">Phone numbers</legend>
-
-          <div id="phone-list" class="repeat-list">
-            <div class="repeat-row">
-              <input type="text" class="phone-label" list="phone-labels" data-i18n-ph="phPhoneLabel" placeholder="Label (e.g. WhatsApp)" aria-label="Phone label" />
-              <input type="tel" class="phone-number" data-i18n-ph="phPhone1" placeholder="+1 555 0188" aria-label="Phone number" />
-              <button type="button" class="row-remove" aria-label="Remove this phone">&times;</button>
-            </div>
-            <div class="repeat-row">
-              <input type="text" class="phone-label" list="phone-labels" data-i18n-ph="phPhoneLabel" placeholder="Label (e.g. WhatsApp)" aria-label="Phone label" />
-              <input type="tel" class="phone-number" data-i18n-ph="phPhone2" placeholder="+1 555 0123" aria-label="Phone number" />
-              <button type="button" class="row-remove" aria-label="Remove this phone">&times;</button>
-            </div>
-          </div>
-          <button type="button" class="row-add" id="add-phone" data-i18n="addPhone">+ Add phone</button>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend data-i18n="legendContact">Contact</legend>
-
-          <label class="field">
-            <span class="field__label" data-i18n="labelEmail">Email</span>
-            <input type="email" id="email" name="email" data-i18n-ph="phEmail" placeholder="robin.doe@example.com" />
-          </label>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend data-i18n="legendLinks">Links</legend>
-
-          <div id="link-list" class="repeat-list">
-            <div class="repeat-row">
-              <input type="text" class="link-url" list="link-presets" placeholder="linkedin.com/in/your-profile" aria-label="Link" />
-              <button type="button" class="row-remove" aria-label="Remove this link">&times;</button>
-            </div>
-            <div class="repeat-row">
-              <input type="text" class="link-url" list="link-presets" placeholder="github.com/your-username" aria-label="Link" />
-              <button type="button" class="row-remove" aria-label="Remove this link">&times;</button>
-            </div>
-          </div>
-          <button type="button" class="row-add" id="add-link" data-i18n="addLink">+ Add link</button>
-
-          <label class="check">
-            <input type="checkbox" id="links-in-qr" name="links-in-qr" checked />
-            <span>
-              <span class="check__label" data-i18n="labelLinksInQr">Save links in the QR code and contact file</span>
-              <span class="check__hint" data-i18n="hintLinksInQr">Links always print on the card. Untick for a simpler QR that older phones scan more reliably.</span>
-            </span>
-          </label>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend data-i18n="legendAppearance">Appearance</legend>
-
-          <label class="field field--inline">
-            <span class="field__label" data-i18n="labelAccent">Accent color</span>
-            <input type="color" id="accent" name="accent" value="#732da0" />
-          </label>
-        </fieldset>
-
-        <fieldset class="field-group">
-          <legend data-i18n="legendOutput">Output</legend>
-
-          <div class="segmented" role="radiogroup" aria-label="Which files to generate">
-            <label class="segmented__option">
-              <input type="radio" name="output" value="pdf" />
-              <span data-i18n="optPdfOnly">PDF only</span>
+            <label class="field">
+              <span class="field__label" data-i18n="labelName">Full name</span>
+              <input type="text" id="name" name="name" data-i18n-ph="phName" placeholder="Robin Doe" />
             </label>
-            <label class="segmented__option">
-              <input type="radio" name="output" value="all" checked />
-              <span data-i18n="optAllFiles">All files (PDF + QR + vCard)</span>
+
+            <label class="field">
+              <span class="field__label" data-i18n="labelTitle">Title / role</span>
+              <input type="text" id="title" name="title" data-i18n-ph="phTitle" placeholder="Product Designer" />
             </label>
-          </div>
+          </fieldset>
 
-          <label class="field">
-            <span class="field__label" data-i18n="labelCardSize">Card size</span>
-            <select id="card-size" name="card-size">
-              <option value="us" data-i18n="sizeUs">US business card — 3.5 × 2 in</option>
-              <option value="eu" data-i18n="sizeEu">EU / ISO — 85 × 55 mm</option>
-            </select>
-          </label>
+          <fieldset class="field-group">
+            <legend data-i18n="legendPhones">Phone numbers</legend>
 
-          <label class="field">
-            <span class="field__label" data-i18n="labelPdfLayout">PDF layout</span>
-            <select id="pdf-layout" name="pdf-layout" aria-describedby="pdf-layout-hint">
-              <option value="single" data-i18n="layoutSingle">One card per page</option>
-              <option value="sheet" data-i18n="layoutSheet">Full sheet of cards</option>
-            </select>
-            <!-- Filled by app.js (updateLayoutHint): card count + paper size. -->
-            <span class="field__hint" id="pdf-layout-hint">Exact card size, ready to send to a print shop.</span>
-          </label>
-        </fieldset>
+            <div id="phone-list" class="repeat-list">
+              <div class="repeat-row">
+                <input type="text" class="phone-label" list="phone-labels" data-i18n-ph="phPhoneLabel" placeholder="Label" aria-label="Phone label" />
+                <input type="tel" class="phone-number" data-i18n-ph="phPhone1" placeholder="+1 555 0188" aria-label="Phone number" />
+                <button type="button" class="row-remove" aria-label="Remove this phone">&times;</button>
+              </div>
+              <div class="repeat-row">
+                <input type="text" class="phone-label" list="phone-labels" data-i18n-ph="phPhoneLabel" placeholder="Label" aria-label="Phone label" />
+                <input type="tel" class="phone-number" data-i18n-ph="phPhone2" placeholder="+1 555 0123" aria-label="Phone number" />
+                <button type="button" class="row-remove" aria-label="Remove this phone">&times;</button>
+              </div>
+            </div>
+            <button type="button" class="row-add" id="add-phone" data-i18n="addPhone">+ Add phone</button>
+          </fieldset>
 
-        <button type="submit" class="btn-primary" data-i18n="btnGenerate">Generate card</button>
+          <fieldset class="field-group">
+            <legend data-i18n="legendContact">Email and links</legend>
+
+            <label class="field">
+              <span class="field__label" data-i18n="labelEmail">Email</span>
+              <input type="email" id="email" name="email" data-i18n-ph="phEmail" placeholder="robin.doe@example.com" />
+            </label>
+
+            <span class="field__label" id="links-label" data-i18n="labelLinks">Links</span>
+            <div id="link-list" class="repeat-list" role="group" aria-labelledby="links-label">
+              <div class="repeat-row">
+                <input type="text" class="link-url" list="link-presets" placeholder="linkedin.com/in/your-profile" aria-label="Link" />
+                <button type="button" class="row-remove" aria-label="Remove this link">&times;</button>
+              </div>
+              <div class="repeat-row">
+                <input type="text" class="link-url" list="link-presets" placeholder="github.com/your-username" aria-label="Link" />
+                <button type="button" class="row-remove" aria-label="Remove this link">&times;</button>
+              </div>
+            </div>
+            <button type="button" class="row-add" id="add-link" data-i18n="addLink">+ Add link</button>
+
+            <label class="check">
+              <input type="checkbox" id="links-in-qr" name="links-in-qr" checked />
+              <span>
+                <span class="check__label" data-i18n="labelLinksInQr">Save links in the QR code and contact file</span>
+                <span class="check__hint" data-i18n="hintLinksInQr">Links always print on the card. Untick for a simpler QR that older phones scan more reliably.</span>
+              </span>
+            </label>
+          </fieldset>
+
+          <fieldset class="field-group">
+            <legend data-i18n="labelAccent">Accent color</legend>
+
+            <!-- Curated print-friendly colors; each is dark enough to read as text on
+                 white. The last swatch opens the browser's picker for any color.
+                 app.js (wireSwatches) keeps these in sync with #accent. -->
+            <div class="swatches">
+              <label class="swatch" style="--swatch: #732da0"><input type="radio" name="accent-swatch" value="#732da0" checked /><span class="visually-hidden" data-i18n="colorPurple">Purple</span></label>
+              <label class="swatch" style="--swatch: #1d3557"><input type="radio" name="accent-swatch" value="#1d3557" /><span class="visually-hidden" data-i18n="colorNavy">Navy</span></label>
+              <label class="swatch" style="--swatch: #1f5fa8"><input type="radio" name="accent-swatch" value="#1f5fa8" /><span class="visually-hidden" data-i18n="colorBlue">Blue</span></label>
+              <label class="swatch" style="--swatch: #0e6b6b"><input type="radio" name="accent-swatch" value="#0e6b6b" /><span class="visually-hidden" data-i18n="colorTeal">Teal</span></label>
+              <label class="swatch" style="--swatch: #2e6b34"><input type="radio" name="accent-swatch" value="#2e6b34" /><span class="visually-hidden" data-i18n="colorGreen">Green</span></label>
+              <label class="swatch" style="--swatch: #9b1c2e"><input type="radio" name="accent-swatch" value="#9b1c2e" /><span class="visually-hidden" data-i18n="colorCrimson">Crimson</span></label>
+              <label class="swatch" style="--swatch: #9a5b00"><input type="radio" name="accent-swatch" value="#9a5b00" /><span class="visually-hidden" data-i18n="colorAmber">Amber</span></label>
+              <label class="swatch" style="--swatch: #3d434b"><input type="radio" name="accent-swatch" value="#3d434b" /><span class="visually-hidden" data-i18n="colorGraphite">Graphite</span></label>
+              <label class="swatch swatch--custom" id="swatch-custom" style="--swatch: #732da0">
+                <input type="color" id="accent" name="accent" value="#732da0" />
+                <span class="visually-hidden" data-i18n="colorCustom">Custom color</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field-group">
+            <legend data-i18n="legendOutput">Print and download</legend>
+
+            <label class="field">
+              <span class="field__label" data-i18n="labelCardSize">Card size</span>
+              <select id="card-size" name="card-size">
+                <option value="us" data-i18n="sizeUs">US business card — 3.5 × 2 in</option>
+                <option value="eu" data-i18n="sizeEu">EU / ISO — 85 × 55 mm</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field__label" data-i18n="labelPdfLayout">PDF layout</span>
+              <select id="pdf-layout" name="pdf-layout" aria-describedby="pdf-layout-hint">
+                <option value="single" data-i18n="layoutSingle">One card per page</option>
+                <option value="sheet" data-i18n="layoutSheet">Full sheet of cards</option>
+              </select>
+              <!-- Filled by app.js (updateLayoutHint): card count + paper size. -->
+              <span class="field__hint" id="pdf-layout-hint">Exact card size, ready to send to a print shop.</span>
+            </label>
+
+            <div class="field">
+              <span class="field__label" id="files-label" data-i18n="labelFiles">Files</span>
+              <div class="segmented" role="radiogroup" aria-labelledby="files-label">
+                <label class="segmented__option">
+                  <input type="radio" name="output" value="pdf" />
+                  <span data-i18n="optPdfOnly">PDF only</span>
+                </label>
+                <label class="segmented__option">
+                  <input type="radio" name="output" value="all" checked />
+                  <span data-i18n="optAllFiles">PDF + QR + vCard</span>
+                </label>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+
+        <!-- Stays in view at the bottom of the form. Its label follows the
+             "Files" choice (app.js: updateDownloadLabel). -->
+        <div class="ticket__actions">
+          <button type="submit" class="btn-primary" id="download-btn">Download PDF, QR and vCard</button>
+        </div>
 
         <!-- Preset suggestions (free text still allowed). Shared by every cloned row.
              The phone-label list is refilled per language by app.js (applyLanguage). -->
@@ -149,18 +200,6 @@
         </datalist>
       </form>
     </section>
-
-    <!-- ============================ PREVIEW ============================= -->
-    <aside class="panel preview-panel" aria-labelledby="preview-heading">
-      <h2 id="preview-heading" class="panel__heading" data-i18n="previewHeading">Preview</h2>
-
-      <!-- Drawn by app.js (renderPreview) from the same layout as the PDF. -->
-      <div class="card" id="card-preview">
-        <svg role="img" aria-label="Business card preview" viewBox="0 0 252 144" direction="ltr"></svg>
-      </div>
-
-      <p class="preview-note" data-i18n="previewNote">Live preview, drawn from the same layout as the PDF — what you see is what prints. Click “Generate card” to download your files.</p>
-    </aside>
   </main>
 
   <!-- Vendored libraries load before app.js. -->

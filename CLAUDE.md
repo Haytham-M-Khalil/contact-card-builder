@@ -62,8 +62,10 @@ applies within these project rules, which win on conflict:
   `layoutCard()` in `app.js`; both the PDF and the preview draw from it. Restyle the
   *app around the card* freely, but never position card content with CSS.
 - **No CDN fonts or assets.** A new typeface must be vendored into `lib/` as `.woff2`
-  (with its license, version and source recorded in `lib/README.md`). Prefer the system
-  stack or a single vendored family.
+  (with its license, version and source recorded in `lib/README.md`). The app UI uses
+  **Readex Pro** (one family, Latin + Arabic); don't add another UI family.
+- **The UI never uses the accent color.** App chrome is neutral ink/paper (light and
+  dark via `prefers-color-scheme`); the accent appears only on the card and swatches.
 - **Bilingual + RTL.** Every layout must work in English and Arabic: use logical
   properties (`inline-start/end`, `margin-inline-*`), never hard-coded left/right, and
   add any new UI text to both languages in the i18n table in `app.js`.
@@ -79,7 +81,7 @@ applies within these project rules, which win on conflict:
 index.html     # markup; loads style.css, then vendored libs, then app.js
 style.css      # all styles
 app.js         # all app logic (vCard, QR, PDF, i18n, live preview)
-lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri + Arimo fonts) + README
+lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri + Arimo + Readex Pro fonts) + README
 .claude/skills/ # project skills for Claude Code (frontend-design)
 README.md      # user-facing intro, usage, local run, deploy
 LICENSE        # MIT
