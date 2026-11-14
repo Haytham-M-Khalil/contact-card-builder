@@ -608,35 +608,32 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 5. Helpers: a safe file name from the contact's name, and a generic
-  //    "download this text/blob as a file" routine reused by every output.
+  // 5. Helpers: file names, and a generic "download this text/blob as a file"
+  //    routine reused by every output.
   // ---------------------------------------------------------------------------
-  // Keeps letters and digits from any script (\p{L}, \p{N}, plus \p{M} for
-  // accents and Arabic diacritics), so "فلان الفلاني" and "José Núñez" keep
-  // their names. Drops characters file systems reject, like / \ : * ? " < > |.
-  function safeBaseName(displayName) {
-    var base = displayName
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/[^\p{L}\p{M}\p{N}_.\-]/gu, "")
-      .replace(/_+/g, "_")
-      .replace(/^[_.\-]+|[_.\-]+$/g, "");
-    return base || "contact";
+
+  // The local date and time as 2026-11-14_10-32-05 (no colons: Windows doesn't
+  // allow them in file names). Sorts by name in time order.
+  function fileTimestamp(date) {
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) +
+      "_" + pad(date.getHours()) + "-" + pad(date.getMinutes()) + "-" + pad(date.getSeconds());
   }
 
-  // The PDF's file name says what's inside, so saved files are easy to tell
-  // apart: whose card, one card or a full sheet, the size, and the language.
-  //   Robin_Doe_card_US_EN.pdf            one US card, English layout
-  //   فلان_الفلاني_card_EU_AR.pdf          one EU card, Arabic layout
-  //   Robin_Doe_card-sheet_US-Letter_EN.pdf  10 US cards on a Letter page
-  //   Robin_Doe_card-sheet_EU-A4_AR.pdf      10 EU cards on an A4 page
-  function pdfFileName(data, lang) {
+  // File names use the same English format in both languages and end with the
+  // time they were made, so they're unique, sortable and easy to search. The
+  // PDF's name says what's inside: one card or a full sheet, size, language.
+  //   card_US_EN_2026-11-14_10-32-05.pdf               one US card, English layout
+  //   card_EU_AR_2026-11-14_10-32-05.pdf               one EU card, Arabic layout
+  //   card-sheet_US-Letter_EN_2026-11-14_10-32-05.pdf  10 US cards on a Letter page
+  //   card-sheet_EU-A4_AR_2026-11-14_10-32-05.pdf      10 EU cards on an A4 page
+  function pdfFileName(data, lang, stamp) {
     var size = data.size === "eu" ? "EU" : "US";
     var language = lang === "ar" ? "AR" : "EN";
     var kind = data.sheet
       ? "card-sheet_" + size + "-" + layoutSheet(data.size).paper.name
       : "card_" + size;
-    return safeBaseName(data.displayName) + "_" + kind + "_" + language + ".pdf";
+    return kind + "_" + language + "_" + stamp + ".pdf";
   }
 
   function downloadBlob(filename, blob) {
@@ -833,21 +830,22 @@
     }
 
     var vcard = buildVCard(data);
-    var base = safeBaseName(data.displayName);
+    // One timestamp for the whole batch, so files made together match.
+    var stamp = fileTimestamp(new Date());
     var qr = buildQrModel(vcard);
 
     var canvas = drawQrToCanvas(qr);
 
     // The PDF business card is always produced (QR drawn as vector squares):
     // one card or a full sheet, named by size and language (see pdfFileName).
-    buildPdf(data, qr).save(pdfFileName(data, currentLang));
+    buildPdf(data, qr).save(pdfFileName(data, currentLang, stamp));
 
     // "All files" additionally downloads the QR .png and the .vcf.
     if (data.output === "all") {
       canvas.toBlob(function (blob) {
-        downloadBlob(base + "_QR.png", blob);
+        downloadBlob("QR_" + stamp + ".png", blob);
       }, "image/png");
-      downloadText(base + ".vcf", vcard, "text/vcard;charset=utf-8");
+      downloadText("contact_" + stamp + ".vcf", vcard, "text/vcard;charset=utf-8");
     }
   }
 
@@ -927,7 +925,7 @@
     layoutCard: layoutCard,
     layoutSheet: layoutSheet,
     buildPdf: buildPdf,
-    safeBaseName: safeBaseName,
+    fileTimestamp: fileTimestamp,
     pdfFileName: pdfFileName,
     downloadText: downloadText,
     downloadBlob: downloadBlob,
