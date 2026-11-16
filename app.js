@@ -85,7 +85,7 @@
       noteSaved: "Your details are saved in this browser, so they're still here next time.",
       // QR density warning: one opening + one piece of advice.
       // Card warnings (updateWarnings): content that doesn't fit, then the QR.
-      cardOverflow: "Some details don't fit on the card. Remove a line or shorten a long one.",
+      cardOverflow: "Some details are too close to the card's edge or the QR code to print safely. Remove a line or shorten a long one.",
       qrDense: "The QR code is very dense and may not scan at this card size.",
       qrTooBig: "There's more here than a QR code can hold.",
       qrAdviceLinks: "Remove a link, or untick \u201cSave links in the QR code and contact file\u201d. Links still print on the card.",
@@ -152,7 +152,7 @@
       errName: "يرجى إدخال الاسم.",
       errEmail: "يبدو أن البريد الإلكتروني غير صحيح.",
       noteSaved: "تُحفظ بياناتك في هذا المتصفح، فتجدها هنا في زيارتك القادمة.",
-      cardOverflow: "بعض البيانات لا تتسع على البطاقة. احذف سطرًا أو اختصر سطرًا طويلًا.",
+      cardOverflow: "بعض البيانات قريبة جدًا من حافة البطاقة أو من رمز QR فقد لا تُطبع جيدًا. احذف سطرًا أو اختصر سطرًا طويلًا.",
       qrDense: "رمز QR كثيف جدًا وقد لا يُقرأ بسهولة بهذا الحجم من البطاقة.",
       qrTooBig: "البيانات أكثر مما يتسع له رمز QR.",
       qrAdviceLinks: "احذف رابطًا، أو ألغِ تحديد «حفظ الروابط في رمز QR وملف جهة الاتصال». ستبقى الروابط مطبوعة على البطاقة.",
@@ -490,7 +490,10 @@
     // that already fit are laid out exactly as before.
     y += 13;
     var lineCount = data.phones.length + (data.email ? 1 : 0) + data.links.length;
-    var lastBaseline = H - M;   // the lowest a contact line may sit
+    // The lowest a contact line may sit: the card's own margin (about 5 mm).
+    // A line below it can look fine on screen, but print shops only promise
+    // to cut within about 3 mm of the edge, so it could be trimmed.
+    var lastBaseline = H - M;
     var step = 11.5;
     if (lineCount > 1 && y + (lineCount - 1) * step > lastBaseline) {
       step = Math.max(CONTACT_STEP_MIN, (lastBaseline - y) / (lineCount - 1));
