@@ -87,25 +87,43 @@ README.md      # user-facing intro, usage, local run, deploy
 LICENSE        # MIT
 ```
 
-## Build roadmap (one commit per step)
+## Roadmap (one commit per step)
 
-> **Status: all steps below are shipped.** The app is feature-complete and live on
-> GitHub Pages. This roadmap is kept as a record of how it was built.
+The original build (v1: scaffold → form → vCard → QR → PDF → downloads → polish →
+GitHub Pages) is shipped; see git history. This is the next round of work, agreed
+with the maintainer on 2026-11-16. **Work top to bottom, mark steps ✅ as they ship,
+and check in with the maintainer after step 3 before starting the bigger features.**
 
-1. **Scaffold** repo + docs + license + git. ✅
-2. **Form UI + base CSS** — inputs for name, title, phones (label + number), email,
-   links; the "PDF only / all files" toggle; the card-size dropdown. No logic yet.
-3. **vCard data layer** — read the form → build the vCard string (port of the Python
-   `BEGIN:VCARD` logic) + a file-download helper. Test by inspecting the `.vcf`.
-4. **QR** — vendor `qrcode-generator`, build the matrix from the vCard, render a
-   `.png` download. Test by scanning.
-5. **PDF** — vendor `jsPDF`, draw the card (accent bar, name, title, phones, email,
-   links) and the QR **as vector squares** (port of the Python `canvas` layout).
-   Honor the card-size dropdown.
-6. **File toggle + downloads** — wire "PDF only" vs "all files" (PDF + PNG + VCF).
-7. **Polish** — add/remove phone & link rows dynamically, basic validation, editable
-   accent color, responsive layout.
-8. **Finalize README + deploy** to GitHub Pages.
+1. **Remember the form between visits** — save the form (name, title, phones, email,
+   links, accent, card size, layout, output) to `localStorage` and restore it on load.
+   Same try/catch pattern as the saved language; the app must still work without it.
+2. **Company field** — one optional "Company" input. Shown on the card (via
+   `layoutCard()`) and written to the vCard as `ORG`, so it lands in the QR too.
+   Both languages in the i18n table.
+3. **QR density warning** — warn (don't block) when the vCard makes the QR too dense
+   to scan reliably at the chosen card size; suggest fewer links or unticking
+   "links in QR".
+4. *(Optional — maintainer may skip)* **Test page** — `tests.html`, opened in the
+   browser, runs `buildVCard` / `escapeVCard` / `normalizeUrl` / `containsArabic` on
+   sample inputs and shows pass/fail. No toolchain. Best done before steps 5–6.
+5. **Back side, one-card PDF only, off by default** — an option that adds a second
+   PDF page per card (back: large QR, or the card in the other language). Preview
+   gets a Front/Back switch; the back is laid out by `layoutCard()` too. With the
+   option off, today's PDF must be unchanged. The full sheet stays front-only (duplex
+   alignment can't be verified without a printer).
+6. **Logo on the back side** — upload an image, centered on the back. Never on the
+   front (crowds the layout) and never in the vCard (bloats the QR). Depends on 5.
+7. *Later* — more UI languages via the i18n table, plus a short `CONTRIBUTING.md`.
+8. *Later* — work offline on GitHub Pages (manifest + service worker; `file://`
+   keeps working as today).
+
+**Decided against (don't re-propose without a new reason):**
+- *Import a `.vcf` into the form* — step 1 covers the need; not worth the complexity.
+- *Bleed / crop marks on the one-card PDF* — keeps the PDF exactly card-sized. Revisit
+  only if a print shop asks for bleed, and then as an option.
+
+**Not blocking:** a physical test print of the full sheet. The page size is verified in
+two PDF viewers; the maintainer has no printer and will print when they can.
 
 ## How to run locally
 
