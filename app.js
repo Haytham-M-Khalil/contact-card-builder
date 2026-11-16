@@ -26,9 +26,11 @@
       legendIdentity: "Identity",
       labelName: "Full name",
       labelTitle: "Title / role",
+      labelCompany: "Company",
       legendPhones: "Phone numbers",
       phName: "Robin Doe",
       phTitle: "Product Designer",
+      phCompany: "Northwind Studio",
       phPhoneLabel: "Label",
       phPhone1: "+1 555 0188",
       phPhone2: "+1 555 0123",
@@ -91,9 +93,11 @@
       legendIdentity: "الهوية",
       labelName: "الاسم الكامل",
       labelTitle: "المسمى الوظيفي",
+      labelCompany: "الشركة",
       legendPhones: "أرقام الهاتف",
       phName: "فلان الفلاني",
       phTitle: "مصمم منتجات",
+      phCompany: "استوديو الشمال",
       phPhoneLabel: "التسمية",
       phPhone1: "+970500000000",
       phPhone2: "+970511111111",
@@ -196,6 +200,7 @@
       givenName: givenName,
       familyName: familyName,
       title: val("title"),
+      company: val("company"),
       phones: phones,
       email: val("email"),
       links: links,
@@ -241,6 +246,9 @@
     ];
 
     if (data.title) lines.push("TITLE:" + escapeVCard(data.title));
+    // ORG is a structured field (organization;unit;...); escaping the ";"
+    // keeps the whole company name as the organization.
+    if (data.company) lines.push("ORG:" + escapeVCard(data.company));
 
     data.phones.forEach(function (phone) {
       lines.push("TEL;type=CELL:" + escapeVCard(phone.number));
@@ -423,6 +431,17 @@
     if (data.title) {
       y += 13;
       text(data.title, anchorX, y, 7.6, false, acc);
+    }
+
+    // --- Company (under the title; shrinks to fit, since names run long) ---
+    if (data.company) {
+      y += data.title ? 10 : 13;
+      var companyFont = cardFont(data.company, false);
+      var companySize = 7.6;
+      while (companySize > 6 && textWidthPt(data.company, companyFont, companySize) > textWidth) {
+        companySize = Math.round((companySize - 0.2) * 10) / 10;
+      }
+      text(data.company, anchorX, y, companySize, false, CARD_GREY);
     }
 
     // --- Divider ---
@@ -771,6 +790,7 @@
     en: {
       displayName: "Robin Doe",
       title: "Product Designer",
+      company: "Northwind Studio",
       phones: [
         { label: "WhatsApp", number: "+1 555 0188" },
         { label: "Mobile", number: "+1 555 0123" },
@@ -781,6 +801,7 @@
     ar: {
       displayName: "فلان الفلاني",
       title: "مصمم منتجات",
+      company: "استوديو الشمال",
       phones: [
         { label: "واتساب", number: "+970500000000" },
         { label: "موبايل", number: "+970511111111" },
@@ -800,7 +821,7 @@
     var data = readForm();
 
     // Until any field is filled in, show the localized fictional sample.
-    var isEmpty = !data.displayName && !data.title && !data.email &&
+    var isEmpty = !data.displayName && !data.title && !data.company && !data.email &&
                   data.phones.length === 0 && data.links.length === 0;
     var view = isEmpty ? SAMPLE[currentLang] : data;
     var name = view.displayName || t("previewName");
@@ -809,6 +830,7 @@
       givenName: view.givenName || name,
       familyName: view.familyName || "",
       title: view.title,
+      company: view.company,
       phones: view.phones,
       email: view.email,
       links: view.links,
@@ -930,6 +952,7 @@
     return {
       name: value("name"),
       title: value("title"),
+      company: value("company"),
       phones: phones,
       email: value("email"),
       links: links,
@@ -986,6 +1009,7 @@
 
     setValue("name", saved.name);
     setValue("title", saved.title);
+    setValue("company", saved.company);
     setValue("email", saved.email);
 
     var phones = Array.isArray(saved.phones) ? saved.phones : [];

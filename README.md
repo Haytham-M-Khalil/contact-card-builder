@@ -23,7 +23,8 @@ form, pick a card size, and download.
 - **QR code** that encodes a vCard, so anyone can scan to save your contact. In the PDF
   it's drawn as **vector squares**, so it stays crisp at any print size.
 - **`.vcf` contact file** to import the contact directly into any phone or app.
-- One or more **labelled phone numbers** plus email and links — add/remove rows freely.
+- Name, title and an optional **company** (saved in the contact as `ORG`), plus one or
+  more **labelled phone numbers**, email and links — add/remove rows freely.
 - Choose whether your **links go into the QR code and `.vcf`** too. They always print on
   the card; leaving them out makes a simpler QR that older phones scan more reliably.
 - A toggle for **"PDF only"** vs **"all files"** (PDF + QR `.png` + `.vcf`).

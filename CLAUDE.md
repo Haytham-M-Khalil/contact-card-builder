@@ -5,7 +5,7 @@ Guidance for working in this repo. Read this first.
 ## What this is
 
 **Contact Card Builder** — a browser-only web app that turns a simple form
-(name, title, one or more labelled phones, email, links) into:
+(name, title, company, one or more labelled phones, email, links) into:
 
 - a **print-ready PDF business card**,
 - optionally a **QR code `.png`**, and
@@ -100,7 +100,7 @@ and check in with the maintainer after step 3 before starting the bigger feature
    Agreed details: add a **"Clear form"** button that asks for confirmation first,
    and the saved form **survives a language switch** (switching language never
    clears what was typed).
-2. **Company field** — one optional "Company" input. Shown on the card (via
+2. ✅ **Company field** — one optional "Company" input. Shown on the card (via
    `layoutCard()`) and written to the vCard as `ORG`, so it lands in the QR too.
    Both languages in the i18n table.
 3. **QR density warning** — warn (don't block) when the vCard makes the QR too dense
