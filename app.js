@@ -83,7 +83,9 @@
       errEmail: "That email doesn't look right.",
       // The form is remembered in this browser between visits (saveForm).
       noteSaved: "Your details are saved in this browser, so they're still here next time.",
-      // QR density warning (updateQrWarning): one opening + one piece of advice.
+      // QR density warning: one opening + one piece of advice.
+      // Card warnings (updateWarnings): content that doesn't fit, then the QR.
+      cardOverflow: "Some details don't fit on the card. Remove a line or shorten a long one.",
       qrDense: "The QR code is very dense and may not scan at this card size.",
       qrTooBig: "There's more here than a QR code can hold.",
       qrAdviceLinks: "Remove a link, or untick \u201cSave links in the QR code and contact file\u201d. Links still print on the card.",
@@ -150,6 +152,7 @@
       errName: "يرجى إدخال الاسم.",
       errEmail: "يبدو أن البريد الإلكتروني غير صحيح.",
       noteSaved: "تُحفظ بياناتك في هذا المتصفح، فتجدها هنا في زيارتك القادمة.",
+      cardOverflow: "بعض البيانات لا تتسع على البطاقة. احذف سطرًا أو اختصر سطرًا طويلًا.",
       qrDense: "رمز QR كثيف جدًا وقد لا يُقرأ بسهولة بهذا الحجم من البطاقة.",
       qrTooBig: "البيانات أكثر مما يتسع له رمز QR.",
       qrAdviceLinks: "احذف رابطًا، أو ألغِ تحديد «حفظ الروابط في رمز QR وملف جهة الاتصال». ستبقى الروابط مطبوعة على البطاقة.",
@@ -377,6 +380,10 @@
     return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
   }
 
+  // The closest the contact lines may get on a crowded card, in points
+  // (they're 7 pt type, normally 11.5 pt apart).
+  var CONTACT_STEP_MIN = 9.5;
+
   // Card colors (the accent comes from the form).
   var CARD_INK = "#1c2230";
   var CARD_GREY = "#73787f";
@@ -438,10 +445,12 @@
     ops.push({ type: "rect", x: rtl ? W - 4 : 0, y: 0, w: 4, h: H, color: acc,
                bleed: rtl ? "right" : "left" });
 
-    // Width available to the text column (between the start edge and the QR).
+    // Width available to the text column (between the start edge and the QR,
+    // keeping a 10 pt gap before the QR).
+    var qrGap = 10;
     var textWidth = rtl
-      ? anchorX - (qx + qrSize + 10)
-      : (qx - 10) - edge;
+      ? anchorX - (qx + qrSize + qrGap)
+      : (qx - qrGap) - edge;
 
     // --- Name (auto-shrink to fit the text column) ---
     var nameFont = cardFont(data.displayName, true);
@@ -476,8 +485,17 @@
                y2: y, width: 0.8, color: acc });
 
     // --- Contact lines: phones (label + number), email, links ---
+    // Lines are 11.5 pt apart. On a crowded card they move closer together
+    // (down to CONTACT_STEP_MIN) so the last line stays on the card; cards
+    // that already fit are laid out exactly as before.
     y += 13;
+    var lineCount = data.phones.length + (data.email ? 1 : 0) + data.links.length;
+    var lastBaseline = H - M;   // the lowest a contact line may sit
     var step = 11.5;
+    if (lineCount > 1 && y + (lineCount - 1) * step > lastBaseline) {
+      step = Math.max(CONTACT_STEP_MIN, (lastBaseline - y) / (lineCount - 1));
+    }
+    var fits = lineCount === 0 || y + (lineCount - 1) * step <= lastBaseline + 0.01;
     data.phones.forEach(function (phone) {
       if (phone.label) {
         var labelFont = text(phone.label, anchorX, y, 6.6, true, acc);
@@ -495,7 +513,20 @@
       y += step;
     });
 
-    return { w: W, h: H, ops: ops };
+    // Does every line of the text column stay clear of the QR? A long link
+    // may run into the gap before it (that still looks fine), but must end at
+    // least 2 pt short of the QR box: text in the QR's white margin makes it
+    // harder to scan. (The name and company shrink to fit, but only down to a
+    // minimum.) The caption is centered under the QR, so it isn't checked.
+    ops.forEach(function (op) {
+      if (op.type !== "text" || op.align !== align) return;
+      var reach = Math.abs(op.x - anchorX) + textWidthPt(op.text, op.font, op.size);
+      if (reach > textWidth + qrGap - 2) fits = false;
+    });
+
+    // `fits` is false when something runs off the card or into the QR; the
+    // app warns about it (updateWarnings) but still draws the card as is.
+    return { w: W, h: H, ops: ops, fits: fits };
   }
 
   // Paper for the "full sheet" layout, in points. Each card size goes on the
@@ -872,7 +903,7 @@
     var layout = layoutCard(shown, currentLang, qr);
     renderPreview(svg, layout);
     // The sample card never warns; only what the user typed does.
-    updateQrWarning(isEmpty ? "ok" : qrScanCheck(layout), data);
+    updateWarnings(isEmpty ? [] : cardWarnings(layout, data));
     updateLayoutHint(data);
     updateRulers(data);
     updateDownloadLabel(data);
@@ -890,23 +921,41 @@
     height.textContent = t(eu ? "rulerEuHeight" : "rulerUsHeight");
   }
 
-  // Warn (never block) when the QR may not scan, next to the download button
-  // so it's seen on every screen size. The advice fits the situation: links
-  // in the QR are the usual cause, and unticking them keeps them on the card.
-  function updateQrWarning(state, data) {
-    var box = document.getElementById("qr-warning");
-    var text = document.getElementById("qr-warning-text");
-    if (!box || !text) return;
-    var message = "";
-    if (state !== "ok") {
+  // What's wrong with the card, as messages for the warning box: content
+  // that doesn't fit, and a QR that may not scan. For the QR the advice fits
+  // the situation: links in the QR are the usual cause, and unticking them
+  // keeps them on the card.
+  function cardWarnings(layout, data) {
+    var messages = [];
+    if (!layout.fits) messages.push(t("cardOverflow"));
+    var qrState = qrScanCheck(layout);
+    if (qrState !== "ok") {
       var linksInQr = data.linksInVCard && data.links.length > 0;
-      message = t(state === "too-big" ? "qrTooBig" : "qrDense") + " " +
-                t(linksInQr ? "qrAdviceLinks" : "qrAdviceOther");
+      messages.push(t(qrState === "too-big" ? "qrTooBig" : "qrDense") + " " +
+                    t(linksInQr ? "qrAdviceLinks" : "qrAdviceOther"));
     }
+    return messages;
+  }
+
+  // Show the warnings (never block) next to the download button, so they're
+  // seen on every screen size. One line per message.
+  function updateWarnings(messages) {
+    var box = document.getElementById("card-warning");
+    var text = document.getElementById("card-warning-text");
+    if (!box || !text) return;
     // Only touch the text when it changes, so screen readers announce it once
     // (it's a live region), not on every keystroke.
-    if (text.textContent !== message) text.textContent = message;
-    box.hidden = !message;
+    if (text.getAttribute("data-shown") !== messages.join("\n")) {
+      text.setAttribute("data-shown", messages.join("\n"));
+      text.textContent = "";
+      messages.forEach(function (message) {
+        var line = document.createElement("span");
+        line.className = "card-warning__line";
+        line.textContent = message;
+        text.appendChild(line);
+      });
+    }
+    box.hidden = messages.length === 0;
   }
 
   // The button says exactly what it will download: just the PDF, or all three.
@@ -1196,7 +1245,10 @@
     var vcard = buildVCard(data);
     // One timestamp for the whole batch, so files made together match.
     var stamp = fileTimestamp(new Date());
-    var qr = buildQrModel(vcard);
+    // Too much data for any QR code: there's no card to make. The warning
+    // above the button already says so and how to fix it.
+    var qr;
+    try { qr = buildQrModel(vcard); } catch (e) { return; }
 
     var canvas = drawQrToCanvas(qr);
 

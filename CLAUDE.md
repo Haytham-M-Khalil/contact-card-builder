@@ -60,7 +60,9 @@ applies within these project rules, which win on conflict:
 
 - **The card preview must keep matching the PDF.** Change the card only in
   `layoutCard()` in `app.js`; both the PDF and the preview draw from it. Restyle the
-  *app around the card* freely, but never position card content with CSS.
+  *app around the card* freely, but never position card content with CSS. New card
+  content must keep `layoutCard()`'s `fits` flag honest (it drives the "doesn't fit"
+  warning), and must not change cards that already fit.
 - **No CDN fonts or assets.** A new typeface must be vendored into `lib/` as `.woff2`
   (with its license, version and source recorded in `lib/README.md`). The app UI uses
   **Readex Pro** (one family, Latin + Arabic); don't add another UI family.
@@ -105,7 +107,14 @@ and check in with the maintainer after step 3 before starting the bigger feature
    Both languages in the i18n table.
 3. ✅ **QR density warning** — warn (don't block) when the vCard makes the QR too dense
    to scan reliably at the chosen card size; suggest fewer links or unticking
-   "links in QR".
+   "links in QR". Threshold: a printed QR module under 0.4 mm (`QR_MIN_MODULE_MM`),
+   not yet checked with a real scan of a printed card — tune it if the maintainer's
+   phone disagrees.
+   - ✅ *Follow-up from the step-3 check-in (2026-11-16):* `layoutCard()` now tightens
+     the contact-line spacing on crowded cards and returns `fits: false` when text
+     still runs off the card or into the QR; the same warning bar says so. Cards that
+     already fit print exactly as before. Download no longer fails silently when the
+     data is too big for any QR. **Step-3 check-in done; step 4 is next** (agreed).
 4. *(Optional — maintainer may skip)* **Test page** — `tests.html`, opened in the
    browser, runs `buildVCard` / `escapeVCard` / `normalizeUrl` / `containsArabic` on
    sample inputs and shows pass/fail. No toolchain. Best done before steps 5–6.

@@ -191,16 +191,17 @@
         <!-- Stays in view at the bottom of the form. Its label follows the
              "Files" choice (app.js: updateDownloadLabel). -->
         <div class="ticket__actions">
-          <!-- Shown when the QR may be too dense to scan (app.js: updateQrWarning).
+          <!-- Shown when details don't fit on the card or the QR may be too dense
+               to scan (app.js: updateWarnings).
                The wrapper is always there, so screen readers announce changes. -->
           <div role="status">
-            <p class="qr-warning" id="qr-warning" hidden>
-              <svg class="qr-warning__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <p class="card-warning" id="card-warning" hidden>
+              <svg class="card-warning__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                 <path d="M8 1.75 15 14.25H1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
                 <path d="M8 6v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                 <circle cx="8" cy="12.1" r="0.9" fill="currentColor" />
               </svg>
-              <span id="qr-warning-text"></span>
+              <span id="card-warning-text"></span>
             </p>
           </div>
           <button type="submit" class="btn-primary" id="download-btn">Download PDF, QR and vCard</button>
