@@ -689,6 +689,27 @@ select.is-invalid {
   background: var(--swatch);
 }
 
+/* The browser opens its color picker next to the <input type="color">, and in
+   Chromium that is towards the right of the input. The custom chip is the last
+   in the row, so in English it sits near the window's right edge, and Chromium
+   on Linux/Wayland (it can't see the screen edge there) lets the picker run
+   off-screen instead of flipping it. So the input itself spans the whole swatch
+   row (invisible, and clicks pass through it to the other chips); the picker
+   then opens under the row, with room on both sides in both languages. Clicking
+   the chip still opens it, because the chip is the input's <label>, and the
+   focus ring stays on the chip (.swatch:has(input:focus-visible)). */
+.swatches {
+  position: relative;
+}
+
+.swatch--custom {
+  position: static;
+}
+
+.swatch--custom input {
+  pointer-events: none;
+}
+
 /* ---------- 10. Segmented toggle, card warning, primary button ----------- */
 .segmented {
   display: flex;
