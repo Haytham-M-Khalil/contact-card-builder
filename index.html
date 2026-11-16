@@ -174,6 +174,13 @@
               </div>
             </div>
           </fieldset>
+
+          <!-- The form is saved in this browser as you type (app.js: saveForm).
+               The note is hidden when the browser blocks storage. -->
+          <div class="form-memory">
+            <p class="form-memory__note" id="saved-note" data-i18n="noteSaved">Your details are saved in this browser, so they're still here next time.</p>
+            <button type="button" class="btn-text" id="clear-form" data-i18n="btnClearForm">Clear form</button>
+          </div>
         </div>
 
         <!-- Stays in view at the bottom of the form. Its label follows the

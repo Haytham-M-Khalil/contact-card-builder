@@ -79,6 +79,10 @@
       previewName: "Your Name",
       errName: "Please enter a name.",
       errEmail: "That email doesn't look right.",
+      // The form is remembered in this browser between visits (saveForm).
+      noteSaved: "Your details are saved in this browser, so they're still here next time.",
+      btnClearForm: "Clear form",
+      confirmClearForm: "Clear the form? This also deletes the details saved in this browser.",
     },
     ar: {
       appTitle: "منشئ بطاقة التواصل",
@@ -136,6 +140,9 @@
       previewName: "اسمك",
       errName: "يرجى إدخال الاسم.",
       errEmail: "يبدو أن البريد الإلكتروني غير صحيح.",
+      noteSaved: "تُحفظ بياناتك في هذا المتصفح، فتجدها هنا في زيارتك القادمة.",
+      btnClearForm: "مسح النموذج",
+      confirmClearForm: "هل تريد مسح النموذج؟ سيؤدي ذلك أيضًا إلى حذف البيانات المحفوظة في هذا المتصفح.",
     },
   };
 
@@ -736,7 +743,7 @@
       list.appendChild(clone);
       var firstInput = clone.querySelector("input");
       if (firstInput) firstInput.focus();
-      syncPreview();
+      formChanged();
     });
 
     list.addEventListener("click", function (event) {
@@ -748,7 +755,7 @@
       } else {
         row.querySelectorAll("input").forEach(function (input) { input.value = ""; });
       }
-      syncPreview();
+      formChanged();
     });
   }
 
@@ -872,6 +879,7 @@
     });
     accent.addEventListener("input", syncChips);
     syncChips();
+    return syncChips;
   }
 
   // The hint under "PDF layout": what the chosen layout prints, e.g.
@@ -887,6 +895,169 @@
     } else {
       hint.textContent = t("hintSingle");
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 7b. Remember the form between visits. Everything typed is saved to
+  //     localStorage as it changes and put back when the page opens. Like the
+  //     saved language, every storage call is wrapped in try/catch: with
+  //     storage blocked (private mode, file:// in some browsers) the app works
+  //     the same, it just doesn't remember.
+  // ---------------------------------------------------------------------------
+  var FORM_KEY = "ccb-form";
+
+  // The rows as typed, half-filled ones included, so a visit picks up exactly
+  // where the last one stopped. (readForm, by contrast, trims and drops
+  // empty rows, because it feeds the vCard.)
+  function snapshotForm() {
+    var value = function (id) {
+      var el = document.getElementById(id);
+      return el ? el.value : "";
+    };
+    var phones = [];
+    document.querySelectorAll("#phone-list .repeat-row").forEach(function (row) {
+      phones.push({
+        label: row.querySelector(".phone-label").value,
+        number: row.querySelector(".phone-number").value,
+      });
+    });
+    var links = [];
+    document.querySelectorAll("#link-list .link-url").forEach(function (input) {
+      links.push(input.value);
+    });
+    var output = document.querySelector('input[name="output"]:checked');
+    var linksInQr = document.getElementById("links-in-qr");
+    return {
+      name: value("name"),
+      title: value("title"),
+      phones: phones,
+      email: value("email"),
+      links: links,
+      linksInQr: linksInQr ? linksInQr.checked : true,
+      accent: value("accent"),
+      size: value("card-size"),
+      layout: value("pdf-layout"),
+      output: output ? output.value : "all",
+    };
+  }
+
+  function saveForm() {
+    try { localStorage.setItem(FORM_KEY, JSON.stringify(snapshotForm())); } catch (e) {}
+  }
+
+  function loadSavedForm() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(FORM_KEY));
+      return saved && typeof saved === "object" ? saved : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Give a repeat list exactly `count` rows (at least one), then hand each
+  // row to `fill`. New rows are copies of the last one, like "+ Add".
+  function setRowCount(list, count) {
+    var rows = list.querySelectorAll(".repeat-row");
+    count = Math.max(1, count);
+    for (var i = rows.length; i < count; i++) {
+      var clone = list.lastElementChild.cloneNode(true);
+      list.appendChild(clone);
+    }
+    for (var j = rows.length; j > count; j--) {
+      list.removeChild(list.lastElementChild);
+    }
+    return list.querySelectorAll(".repeat-row");
+  }
+
+  // Put a saved form back. Anything missing or no longer valid (an option
+  // that was renamed, a malformed color) keeps the form's default.
+  function restoreForm(saved) {
+    var str = function (v) { return typeof v === "string" ? v : ""; };
+    var setValue = function (id, v) {
+      var el = document.getElementById(id);
+      if (el) el.value = str(v);
+    };
+    var setSelect = function (id, v) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var known = Array.prototype.some.call(el.options, function (o) { return o.value === v; });
+      if (known) el.value = v;
+    };
+
+    setValue("name", saved.name);
+    setValue("title", saved.title);
+    setValue("email", saved.email);
+
+    var phones = Array.isArray(saved.phones) ? saved.phones : [];
+    var phoneList = document.getElementById("phone-list");
+    if (phoneList) {
+      setRowCount(phoneList, phones.length).forEach(function (row, i) {
+        var phone = phones[i] || {};
+        row.querySelector(".phone-label").value = str(phone.label);
+        row.querySelector(".phone-number").value = str(phone.number);
+      });
+    }
+
+    var links = Array.isArray(saved.links) ? saved.links : [];
+    var linkList = document.getElementById("link-list");
+    if (linkList) {
+      setRowCount(linkList, links.length).forEach(function (row, i) {
+        row.querySelector(".link-url").value = str(links[i]);
+      });
+    }
+
+    var linksInQr = document.getElementById("links-in-qr");
+    if (linksInQr && typeof saved.linksInQr === "boolean") linksInQr.checked = saved.linksInQr;
+
+    if (/^#[0-9a-f]{6}$/i.test(str(saved.accent))) setValue("accent", saved.accent);
+    setSelect("card-size", saved.size);
+    setSelect("pdf-layout", saved.layout);
+    document.querySelectorAll('input[name="output"]').forEach(function (radio) {
+      if (radio.value === saved.output) radio.checked = true;
+    });
+  }
+
+  // "Clear form": after the user confirms, put every field and row back to
+  // how the page first loaded and forget the saved copy. `defaultRows` holds
+  // the original markup of the phone and link lists; `syncChips` re-selects
+  // the default accent swatch.
+  function wireClearForm(defaultRows, syncChips) {
+    var btn = document.getElementById("clear-form");
+    var form = document.getElementById("card-form");
+    if (!btn || !form) return;
+    btn.addEventListener("click", function () {
+      if (!window.confirm(t("confirmClearForm"))) return;
+      Object.keys(defaultRows).forEach(function (id) {
+        document.getElementById(id).innerHTML = defaultRows[id];
+      });
+      form.reset();
+      setFieldError("name", "");
+      setFieldError("email", "");
+      try { localStorage.removeItem(FORM_KEY); } catch (e) {}
+      if (syncChips) syncChips();
+      // Re-translates the restored rows' placeholders and redraws the preview.
+      applyLanguage(currentLang);
+      var name = document.getElementById("name");
+      if (name) name.focus();
+    });
+  }
+
+  // Can this browser keep the form? Decides whether the "saved in this
+  // browser" note is shown, so it never promises something that won't happen.
+  function storageWorks() {
+    try {
+      localStorage.setItem("ccb-test", "1");
+      localStorage.removeItem("ccb-test");
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Any edit: redraw the preview and remember the form.
+  function formChanged() {
+    syncPreview();
+    saveForm();
   }
 
   // ---------------------------------------------------------------------------
@@ -1016,8 +1187,8 @@
     var form = document.getElementById("card-form");
     if (form) {
       form.addEventListener("submit", handleSubmit);
-      form.addEventListener("input", syncPreview);
-      form.addEventListener("change", syncPreview);
+      form.addEventListener("input", formChanged);
+      form.addEventListener("change", formChanged);
       // Clear a field's error as soon as the user edits it.
       form.addEventListener("input", function (event) {
         if (event.target.id === "name" || event.target.id === "email") {
@@ -1025,9 +1196,22 @@
         }
       });
     }
+    // Keep the lists' original rows for "Clear form", then put back what was
+    // typed last visit — before the swatches and language read the form.
+    var defaultRows = {};
+    ["phone-list", "link-list"].forEach(function (id) {
+      var list = document.getElementById(id);
+      if (list) defaultRows[id] = list.innerHTML;
+    });
+    var savedForm = loadSavedForm();
+    if (savedForm) restoreForm(savedForm);
+
     wireRepeatList("phone-list", "add-phone");
     wireRepeatList("link-list", "add-link");
-    wireSwatches();
+    var syncChips = wireSwatches();
+    wireClearForm(defaultRows, syncChips);
+    var savedNote = document.getElementById("saved-note");
+    if (savedNote) savedNote.hidden = !storageWorks();
 
     var saved = null;
     try { saved = localStorage.getItem("ccb-lang"); } catch (e) {}
@@ -1056,5 +1240,6 @@
     downloadText: downloadText,
     downloadBlob: downloadBlob,
     applyLanguage: applyLanguage,
+    snapshotForm: snapshotForm,
   };
 })();

@@ -94,7 +94,7 @@ GitHub Pages) is shipped; see git history. This is the next round of work, agree
 with the maintainer on 2026-11-16. **Work top to bottom, mark steps ✅ as they ship,
 and check in with the maintainer after step 3 before starting the bigger features.**
 
-1. **Remember the form between visits** — save the form (name, title, phones, email,
+1. ✅ **Remember the form between visits** — save the form (name, title, phones, email,
    links, accent, card size, layout, output) to `localStorage` and restore it on load.
    Same try/catch pattern as the saved language; the app must still work without it.
    Agreed details: add a **"Clear form"** button that asks for confirmation first,
