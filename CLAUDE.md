@@ -109,7 +109,10 @@ and check in with the maintainer after step 3 before starting the bigger feature
    to scan reliably at the chosen card size; suggest fewer links or unticking
    "links in QR". Threshold: a printed QR module under 0.4 mm (`QR_MIN_MODULE_MM`),
    not yet checked with a real scan of a printed card — tune it if the maintainer's
-   phone disagrees.
+   phone disagrees. *On-screen check (2026-11-16, PDF in Brave):* the warned US card
+   with 5 links (0.39 mm modules) only scanned from 250% zoom; the unwarned EU one
+   (0.42 mm) scanned from 110%. So the threshold sits about right; a screen is only a
+   rough stand-in for print, so keep it until a printed card says otherwise.
    - ✅ *Follow-up from the step-3 check-in (2026-11-16):* `layoutCard()` now tightens
      the contact-line spacing on crowded cards and returns `fits: false` when text
      still runs off the card or into the QR; the same warning bar says so. Cards that
