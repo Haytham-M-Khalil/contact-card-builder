@@ -30,7 +30,7 @@
       legendPhones: "Phone numbers",
       phName: "Robin Doe",
       phTitle: "Product Designer",
-      phCompany: "Northwind Studio",
+      phCompany: "Maple & Moss Studio",
       phPhoneLabel: "Label",
       phPhone1: "+1 555 0188",
       phPhone2: "+1 555 0123",
@@ -104,7 +104,7 @@
       legendPhones: "أرقام الهاتف",
       phName: "فلان الفلاني",
       phTitle: "مصمم منتجات",
-      phCompany: "استوديو الشمال",
+      phCompany: "استوديو الريشة",
       phPhoneLabel: "التسمية",
       phPhone1: "+970500000000",
       phPhone2: "+970511111111",
@@ -849,7 +849,7 @@
     en: {
       displayName: "Robin Doe",
       title: "Product Designer",
-      company: "Northwind Studio",
+      company: "Maple & Moss Studio",
       phones: [
         { label: "WhatsApp", number: "+1 555 0188" },
         { label: "Mobile", number: "+1 555 0123" },
@@ -860,7 +860,7 @@
     ar: {
       displayName: "فلان الفلاني",
       title: "مصمم منتجات",
-      company: "استوديو الشمال",
+      company: "استوديو الريشة",
       phones: [
         { label: "واتساب", number: "+970500000000" },
         { label: "موبايل", number: "+970511111111" },
