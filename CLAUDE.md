@@ -103,7 +103,7 @@ and check in with the maintainer after step 3 before starting the bigger feature
 2. ✅ **Company field** — one optional "Company" input. Shown on the card (via
    `layoutCard()`) and written to the vCard as `ORG`, so it lands in the QR too.
    Both languages in the i18n table.
-3. **QR density warning** — warn (don't block) when the vCard makes the QR too dense
+3. ✅ **QR density warning** — warn (don't block) when the vCard makes the QR too dense
    to scan reliably at the chosen card size; suggest fewer links or unticking
    "links in QR".
 4. *(Optional — maintainer may skip)* **Test page** — `tests.html`, opened in the

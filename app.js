@@ -83,6 +83,11 @@
       errEmail: "That email doesn't look right.",
       // The form is remembered in this browser between visits (saveForm).
       noteSaved: "Your details are saved in this browser, so they're still here next time.",
+      // QR density warning (updateQrWarning): one opening + one piece of advice.
+      qrDense: "The QR code is very dense and may not scan at this card size.",
+      qrTooBig: "There's more here than a QR code can hold.",
+      qrAdviceLinks: "Remove a link, or untick \u201cSave links in the QR code and contact file\u201d. Links still print on the card.",
+      qrAdviceOther: "Try fewer phone numbers or shorter details.",
       btnClearForm: "Clear form",
       confirmClearForm: "Clear the form? This also deletes the details saved in this browser.",
     },
@@ -145,6 +150,10 @@
       errName: "يرجى إدخال الاسم.",
       errEmail: "يبدو أن البريد الإلكتروني غير صحيح.",
       noteSaved: "تُحفظ بياناتك في هذا المتصفح، فتجدها هنا في زيارتك القادمة.",
+      qrDense: "رمز QR كثيف جدًا وقد لا يُقرأ بسهولة بهذا الحجم من البطاقة.",
+      qrTooBig: "البيانات أكثر مما يتسع له رمز QR.",
+      qrAdviceLinks: "احذف رابطًا، أو ألغِ تحديد «حفظ الروابط في رمز QR وملف جهة الاتصال». ستبقى الروابط مطبوعة على البطاقة.",
+      qrAdviceOther: "جرّب تقليل أرقام الهاتف أو اختصار البيانات.",
       btnClearForm: "مسح النموذج",
       confirmClearForm: "هل تريد مسح النموذج؟ سيؤدي ذلك أيضًا إلى حذف البيانات المحفوظة في هذا المتصفح.",
     },
@@ -318,6 +327,22 @@
       }
     }
     return canvas;
+  }
+
+  // Can a phone scan the printed QR? What matters is how big one module (one
+  // small square) prints. More data means more modules in the same box, so
+  // each one gets smaller. Below about 0.4 mm, phone cameras start to
+  // struggle with a printed code, so that is where we warn. Tune it here.
+  var QR_MIN_MODULE_MM = 0.4;
+
+  // "ok", "dense" (warn: may not scan) or "too-big" (no QR could be made).
+  // Reads the QR box from the card layout, so it follows the card size.
+  function qrScanCheck(layout) {
+    var op = layout.ops.filter(function (o) { return o.type === "qr"; })[0];
+    if (!op || !op.qr) return "too-big";
+    var modulePt = op.size / (op.qr.getModuleCount() + op.quiet * 2);
+    var moduleMm = modulePt / 72 * 25.4;
+    return moduleMm < QR_MIN_MODULE_MM ? "dense" : "ok";
   }
 
   // ---------------------------------------------------------------------------
@@ -844,7 +869,10 @@
     var qr = null;
     try { qr = buildQrModel(buildVCard(shown)); } catch (e) { qr = null; }
 
-    renderPreview(svg, layoutCard(shown, currentLang, qr));
+    var layout = layoutCard(shown, currentLang, qr);
+    renderPreview(svg, layout);
+    // The sample card never warns; only what the user typed does.
+    updateQrWarning(isEmpty ? "ok" : qrScanCheck(layout), data);
     updateLayoutHint(data);
     updateRulers(data);
     updateDownloadLabel(data);
@@ -860,6 +888,25 @@
     proof.setAttribute("data-size", eu ? "eu" : "us");
     width.textContent = t(eu ? "rulerEuWidth" : "rulerUsWidth");
     height.textContent = t(eu ? "rulerEuHeight" : "rulerUsHeight");
+  }
+
+  // Warn (never block) when the QR may not scan, next to the download button
+  // so it's seen on every screen size. The advice fits the situation: links
+  // in the QR are the usual cause, and unticking them keeps them on the card.
+  function updateQrWarning(state, data) {
+    var box = document.getElementById("qr-warning");
+    var text = document.getElementById("qr-warning-text");
+    if (!box || !text) return;
+    var message = "";
+    if (state !== "ok") {
+      var linksInQr = data.linksInVCard && data.links.length > 0;
+      message = t(state === "too-big" ? "qrTooBig" : "qrDense") + " " +
+                t(linksInQr ? "qrAdviceLinks" : "qrAdviceOther");
+    }
+    // Only touch the text when it changes, so screen readers announce it once
+    // (it's a live region), not on every keystroke.
+    if (text.textContent !== message) text.textContent = message;
+    box.hidden = !message;
   }
 
   // The button says exactly what it will download: just the PDF, or all three.
@@ -1257,6 +1304,7 @@
     buildQrModel: buildQrModel,
     drawQrToCanvas: drawQrToCanvas,
     layoutCard: layoutCard,
+    qrScanCheck: qrScanCheck,
     layoutSheet: layoutSheet,
     buildPdf: buildPdf,
     fileTimestamp: fileTimestamp,

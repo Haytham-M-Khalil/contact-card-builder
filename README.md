@@ -27,6 +27,8 @@ form, pick a card size, and download.
   more **labelled phone numbers**, email and links — add/remove rows freely.
 - Choose whether your **links go into the QR code and `.vcf`** too. They always print on
   the card; leaving them out makes a simpler QR that older phones scan more reliably.
+- A **warning when the QR gets too dense** to scan reliably at the chosen card size,
+  with a suggestion for how to simplify it.
 - A toggle for **"PDF only"** vs **"all files"** (PDF + QR `.png` + `.vcf`).
 - **Accent color** from a row of print-friendly swatches, or any custom color.
 - **Remembers your details** between visits. They're saved only in your browser

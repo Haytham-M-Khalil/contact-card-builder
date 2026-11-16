@@ -21,7 +21,7 @@
      7. Ticket: form groups and fields
      8. Repeatable rows (phones / links) + checkbox + clear form
      9. Accent swatches
-    10. Segmented toggle + primary button
+    10. Segmented toggle, QR warning, primary button
     11. RTL adjustments
     12. Responsive + reduced motion
    ============================================================================= */
@@ -689,7 +689,7 @@ select.is-invalid {
   background: var(--swatch);
 }
 
-/* ---------------- 10. Segmented toggle + primary button ------------------ */
+/* ----------- 10. Segmented toggle, QR warning, primary button ------------ */
 .segmented {
   display: flex;
   border: 1px solid var(--field-line);
@@ -742,6 +742,34 @@ select.is-invalid {
   padding: 1rem clamp(1.25rem, 3vw, 2.25rem) 1.25rem;
   background: var(--paper);
   border-top: 1px solid var(--line);
+}
+
+/* The QR density warning, just above the download button. Ink on a soft
+   wash with a warning sign: it asks for attention without looking like an
+   error, because the download still works. */
+.qr-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--hover);
+  border-inline-start: 3px solid var(--ink);
+  border-radius: var(--radius);
+}
+
+.qr-warning[hidden] {
+  display: none;
+}
+
+.qr-warning__icon {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.1rem;
 }
 
 .btn-primary {
