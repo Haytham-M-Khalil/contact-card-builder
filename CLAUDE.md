@@ -131,6 +131,15 @@ and check in with the maintainer after step 3 before starting the bigger feature
    gets a Front/Back switch; the back is laid out by `layoutCard()` too. With the
    option off, today's PDF must be unchanged. The full sheet stays front-only (duplex
    alignment can't be verified without a printer).
+   - ✅ *Large-QR back (2026-11-17):* "Back of the card" select (`back: "none" | "qr"`,
+     saved with the form); `layoutCard(data, lang, qr, "back")` → `layoutBack()`:
+     centered QR (bigger modules than the front's) + caption, accent bar on the far
+     edge (the card turns over like a page). `hasBack()` gates the PDF's page 2, the
+     preview switch (which flips the card) and the `card-2-sided_…` file name. Verified:
+     with the back off, all 8 PDF variants are byte-identical to before.
+   - *Card in the other language:* **waiting on the maintainer.** The form has one
+     name / title / company, so a meaningful bilingual back needs second-language
+     fields first (and phone labels). Add it as another `back` value when agreed.
 6. **Logo on the back side** — upload an image, centered on the back. Never on the
    front (crowds the layout) and never in the vCard (bloats the QR). Depends on 5.
 7. *Later* — more UI languages via the i18n table, plus a short `CONTRIBUTING.md`.

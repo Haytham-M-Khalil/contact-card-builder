@@ -275,7 +275,7 @@ select {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4.5rem;  /* leaves room for the width ruler under the card */
+  gap: 1rem;
   min-height: 0;
   color: var(--ink-2);  /* marks and rulers draw in currentColor */
 
@@ -296,6 +296,30 @@ select {
   position: relative;
   /* As wide as possible, but never so tall the stage would overflow. */
   width: min(100% - 2 * var(--ruler-offset) - 1rem, 38rem, (100dvh - 17rem) * var(--aspect));
+  margin-block-end: 3.5rem;  /* room for the width ruler under the card */
+}
+
+/* With the Front / Back switch showing, leave room for it in the full-height
+   stage. (Stacked on narrow screens, the stage just grows.) */
+@media (min-width: 961px) {
+  .proof:has(.side-switch:not([hidden])) .proof__frame {
+    width: min(100% - 2 * var(--ruler-offset) - 1rem, 38rem, (100dvh - 19.75rem) * var(--aspect));
+  }
+}
+
+/* Front / Back: the form's segmented toggle, sized to its labels. */
+.side-switch {
+  display: inline-flex;
+}
+
+.side-switch[hidden] {
+  display: none;
+}
+
+.side-switch .segmented__option span {
+  min-width: 5.5rem;
+  padding: 0.35rem 0.9rem;
+  font-size: var(--step--1);
 }
 
 .card {
@@ -512,6 +536,10 @@ select.is-invalid {
   margin-top: 0.4rem;
   font-size: var(--step--1);
   color: var(--ink-2);
+}
+
+.field__hint[hidden] {
+  display: none;
 }
 
 .field-error {
@@ -874,7 +902,10 @@ input[type="email"],
     --mark-gap: 5px;
     --mark-len: 12px;
     --ruler-offset: 1.5rem;
-    gap: 3.5rem;
+  }
+
+  .proof__frame {
+    margin-block-end: 2.5rem;
   }
 
   .brand__tagline {

@@ -60,15 +60,17 @@
       accent: "#732da0",
       size: "us",
       sheet: false,
+      back: "none",
     };
     Object.keys(overrides || {}).forEach(function (key) { data[key] = overrides[key]; });
     return data;
   }
 
   // Lay a card out the way the app does: vCard -> QR -> layout.
-  function layout(data, lang) {
+  // `side` is "front" (the default) or "back".
+  function layout(data, lang, side) {
     var qr = CC.buildQrModel(CC.buildVCard(data));
-    return CC.layoutCard(data, lang || "en", qr);
+    return CC.layoutCard(data, lang || "en", qr, side);
   }
 
   // ---------------------------------------------------------------------------
@@ -253,6 +255,77 @@
     assertEqual(CC.qrScanCheck(CC.layoutCard(sampleCard(), "en", null)), "too-big");
   });
 
+  group("The back of the card (one-card PDF only)");
+
+  // The layout's single QR code drawing operation.
+  function qrOp(card) {
+    return card.ops.filter(function (op) { return op.type === "qr"; })[0];
+  }
+  function barOp(card) {
+    return card.ops.filter(function (op) { return op.type === "rect"; })[0];
+  }
+
+  test("no side given means the front, exactly as before", function () {
+    var data = sampleCard();
+    var qr = CC.buildQrModel(CC.buildVCard(data));
+    assertEqual(CC.layoutCard(data, "en", qr, "front"), CC.layoutCard(data, "en", qr));
+  });
+  test("a back only with one card per page and the QR option", function () {
+    assertFalse(CC.hasBack(sampleCard({ back: "none" })), "blank back");
+    assertTrue(CC.hasBack(sampleCard({ back: "qr" })), "QR back, one card");
+    assertFalse(CC.hasBack(sampleCard({ back: "qr", sheet: true })), "QR back, full sheet");
+    assertFalse(CC.hasBack(sampleCard()), "no back setting at all");
+  });
+  test("the PDF has 1 page, or 2 with a back", function () {
+    var data = sampleCard();
+    var qr = CC.buildQrModel(CC.buildVCard(data));
+    assertEqual(CC.buildPdf(sampleCard({ back: "none" }), qr).getNumberOfPages(), 1, "blank back");
+    assertEqual(CC.buildPdf(sampleCard({ back: "qr" }), qr).getNumberOfPages(), 2, "QR back");
+    assertEqual(CC.buildPdf(sampleCard({ back: "qr", sheet: true }), qr).getNumberOfPages(), 1,
+                "full sheet stays front-only");
+  });
+  test("both pages are card-sized", function () {
+    ["us", "eu"].forEach(function (size) {
+      var data = sampleCard({ size: size, back: "qr" });
+      var doc = CC.buildPdf(data, CC.buildQrModel(CC.buildVCard(data)));
+      var front = layout(data);
+      [1, 2].forEach(function (page) {
+        var box = doc.getPageInfo(page).pageContext.mediaBox;
+        assertEqual([Math.round((box.topRightX - box.bottomLeftX) * 1000) / 1000,
+                     Math.round((box.topRightY - box.bottomLeftY) * 1000) / 1000],
+                    [front.w, front.h], size + " page " + page);
+      });
+    });
+  });
+  test("the back's QR is centered, inside the margins, and bigger than the front's", function () {
+    ["us", "eu"].forEach(function (size) {
+      var data = sampleCard({ size: size });
+      var back = layout(data, "en", "back");
+      var op = qrOp(back);
+      assertEqual(Math.round((op.x + op.size / 2) * 1000), Math.round(back.w / 2 * 1000), size + " centered");
+      assertTrue(op.y >= 14 && op.y + op.size <= back.h - 14, size + " inside the margins");
+      assertTrue(op.size > qrOp(layout(data)).size, size + " bigger than the front's");
+    });
+  });
+  test("the back's accent bar is on the far edge from the front's", function () {
+    var data = sampleCard();
+    assertEqual(barOp(layout(data, "en")).x, 0, "English front: left");
+    assertEqual(barOp(layout(data, "en", "back")).x, 248, "English back: right");
+    assertEqual(barOp(layout(data, "ar")).x, 248, "Arabic front: right");
+    assertEqual(barOp(layout(data, "ar", "back")).x, 0, "Arabic back: left");
+  });
+  test("the back always fits", function () {
+    assertTrue(layout(sampleCard({ email: "a-very-long-address-that-would-not-fit@example.com" }),
+                      "en", "back").fits);
+  });
+  test("a QR too dense for the front scans on the back", function () {
+    var links = ["robindoe.com", "linkedin.com/in/robindoe", "github.com/robindoe",
+                 "instagram.com/robindoe", "behance.net/robindoe"];
+    var data = sampleCard({ links: links });
+    assertEqual(CC.qrScanCheck(layout(data)), "dense", "front");
+    assertEqual(CC.qrScanCheck(layout(data, "en", "back")), "ok", "back");
+  });
+
   group("File names");
 
   test("the timestamp is local time, zero-padded, with no colons", function () {
@@ -268,6 +341,13 @@
                 "card-sheet_US-Letter_EN_2026-11-14_10-32-05.pdf");
     assertEqual(CC.pdfFileName({ size: "eu", sheet: true }, "ar", stamp),
                 "card-sheet_EU-A4_AR_2026-11-14_10-32-05.pdf");
+  });
+  test("a one-card PDF with a back says 2-sided; a full sheet never does", function () {
+    var stamp = "2026-11-14_10-32-05";
+    assertEqual(CC.pdfFileName({ size: "us", sheet: false, back: "qr" }, "en", stamp),
+                "card-2-sided_US_EN_2026-11-14_10-32-05.pdf");
+    assertEqual(CC.pdfFileName({ size: "us", sheet: true, back: "qr" }, "en", stamp),
+                "card-sheet_US-Letter_EN_2026-11-14_10-32-05.pdf");
   });
 
   // ---------------------------------------------------------------------------

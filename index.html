@@ -47,6 +47,19 @@
           <span class="ruler ruler--width" aria-hidden="true"><span id="ruler-width">3.5 in</span></span>
           <span class="ruler ruler--height" aria-hidden="true"><span id="ruler-height">2 in</span></span>
         </div>
+        <!-- Shown when the PDF has a back (app.js: syncPreview); turns the
+             preview card over (showSide). Not part of the form: it changes the
+             view, not the card. -->
+        <div class="segmented side-switch" id="side-switch" role="radiogroup" data-i18n-aria="sideSwitch" aria-label="Side shown in the preview" hidden>
+          <label class="segmented__option">
+            <input type="radio" name="preview-side" value="front" checked />
+            <span data-i18n="sideFront">Front</span>
+          </label>
+          <label class="segmented__option">
+            <input type="radio" name="preview-side" value="back" />
+            <span data-i18n="sideBack">Back</span>
+          </label>
+        </div>
         <figcaption class="proof__note" data-i18n="previewNote">Drawn from the same layout as the PDF, so what you see is what prints.</figcaption>
       </figure>
     </section>
@@ -165,6 +178,16 @@
               </select>
               <!-- Filled by app.js (updateLayoutHint): card count + paper size. -->
               <span class="field__hint" id="pdf-layout-hint">Exact card size, ready to send to a print shop.</span>
+            </label>
+
+            <label class="field">
+              <span class="field__label" data-i18n="labelCardBack">Back of the card</span>
+              <select id="card-back" name="card-back" aria-describedby="card-back-hint">
+                <option value="none" data-i18n="backNone">Blank (front only)</option>
+                <option value="qr" data-i18n="backQr">Large QR code</option>
+              </select>
+              <!-- Filled by app.js (updateBackHint); hidden while the back is blank. -->
+              <span class="field__hint" id="card-back-hint" hidden></span>
             </label>
 
             <div class="field">

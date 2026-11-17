@@ -67,6 +67,18 @@
       hintSingle: "Exact card size, ready to send to a print shop.",
       // {count} and {paper} are filled in by updateLayoutHint().
       hintSheet: "{count} cards on one {paper} page, with cut marks. Print at Actual size (100%), then cut along the marks.",
+      // The back of the card (one card per page only).
+      labelCardBack: "Back of the card",
+      backNone: "Blank (front only)",
+      backQr: "Large QR code",
+      hintBackPage: "Adds a second page to the PDF for the back. Ask the print shop to print both sides.",
+      hintBackSheet: "The full sheet prints the front only. Choose one card per page to print the back.",
+      // The Front / Back switch under the preview card.
+      sideSwitch: "Side shown in the preview",
+      sideFront: "Front",
+      sideBack: "Back",
+      previewFrontAria: "Preview of the front of the card",
+      previewBackAria: "Preview of the back of the card",
       // The download button names exactly what it downloads.
       btnDownloadPdf: "Download PDF",
       btnDownloadAll: "Download PDF, QR and vCard",
@@ -139,6 +151,16 @@
       layoutSheet: "ورقة كاملة من البطاقات",
       hintSingle: "بالمقاس الفعلي للبطاقة، جاهز لإرساله إلى المطبعة.",
       hintSheet: "{count} بطاقات على صفحة {paper} واحدة مع علامات القص. اطبعها بالحجم الفعلي (100%) ثم قُصّ على العلامات.",
+      labelCardBack: "ظهر البطاقة",
+      backNone: "فارغ (الوجه فقط)",
+      backQr: "رمز QR كبير",
+      hintBackPage: "يضيف صفحة ثانية إلى ملف PDF لظهر البطاقة. اطلب من المطبعة الطباعة على الوجهين.",
+      hintBackSheet: "الورقة الكاملة تطبع وجه البطاقة فقط. اختر بطاقة واحدة في كل صفحة لطباعة الظهر.",
+      sideSwitch: "الجهة المعروضة في المعاينة",
+      sideFront: "الوجه",
+      sideBack: "الظهر",
+      previewFrontAria: "معاينة وجه البطاقة",
+      previewBackAria: "معاينة ظهر البطاقة",
       btnDownloadPdf: "تنزيل ملف PDF",
       btnDownloadAll: "تنزيل PDF و QR و vCard",
       previewHeading: "معاينة",
@@ -224,6 +246,8 @@
       size: val("card-size") || "us",
       // true = a full page of cards to print at home; false = one card per page.
       sheet: val("pdf-layout") === "sheet",
+      // What prints on the back: "none" or "qr" (see hasBack).
+      back: val("card-back") || "none",
     };
   }
 
@@ -410,7 +434,9 @@
   // renderPreview() as an SVG, so the preview matches the PDF by construction.
   // A port of the original Python canvas layout. `qr` may be null (preview
   // fallback), in which case the QR box is still reserved at its real size.
-  function layoutCard(data, lang, qr) {
+  // `side` is "front" (the default) or "back" (see layoutBack).
+  function layoutCard(data, lang, qr, side) {
+    if (side === "back") return layoutBack(data, lang, qr);
     var size = CARD_SIZES[data.size] || CARD_SIZES.us;
     var W = size.w, H = size.h;
     var acc = data.accent || "#732da0";
@@ -530,6 +556,43 @@
     // `fits` is false when something runs off the card or into the QR; the
     // app warns about it (updateWarnings) but still draws the card as is.
     return { w: W, h: H, ops: ops, fits: fits };
+  }
+
+  // The back of the card: one large QR code, centered, with the caption under
+  // it. It's bigger than the front's QR, so its squares print bigger and scan
+  // more easily. The accent bar goes on the far edge: a card is turned over
+  // like a page, which swaps left and right, so the colored edge shows on
+  // both sides. Same drawing operations as the front, so the PDF and the
+  // preview draw it the same way.
+  function layoutBack(data, lang, qr) {
+    var size = CARD_SIZES[data.size] || CARD_SIZES.us;
+    var W = size.w, H = size.h;
+    var acc = data.accent || "#732da0";
+    var rtl = lang === "ar";
+    var M = 14;           // the same safe margin as the front
+    var captionGap = 9;   // QR box to caption baseline, as on the front
+    var ops = [];
+
+    var qrSize = H - 2 * M - captionGap;
+    var qx = (W - qrSize) / 2, qy = M;
+    ops.push({ type: "qr", x: qx, y: qy, size: qrSize, quiet: 2, qr: qr, color: CARD_INK });
+
+    var caption = t("scanCaption");
+    ops.push({ type: "text", text: caption, x: W / 2, y: qy + qrSize + captionGap,
+               size: 5.4, font: cardFont(caption, false), color: CARD_GREY, align: "center" });
+
+    ops.push({ type: "rect", x: rtl ? 0 : W - 4, y: 0, w: 4, h: H, color: acc,
+               bleed: rtl ? "left" : "right" });
+
+    // Nothing here depends on what was typed, so the back always fits.
+    return { w: W, h: H, ops: ops, fits: true };
+  }
+
+  // Does this PDF get a back? Only the one-card PDF does: on a full sheet,
+  // fronts and backs would have to line up exactly when printed on both
+  // sides, which can't be checked without a printer.
+  function hasBack(data) {
+    return !data.sheet && data.back === "qr";
   }
 
   // Paper for the "full sheet" layout, in points. Each card size goes on the
@@ -671,6 +734,11 @@
         orientation: layout.w >= layout.h ? "landscape" : "portrait",
       });
       drawCardOps(single, layout.ops, 0, 0);
+      // The back, if chosen, is page 2: what a print shop expects.
+      if (hasBack(data)) {
+        single.addPage([layout.w, layout.h], layout.w >= layout.h ? "landscape" : "portrait");
+        drawCardOps(single, layoutCard(data, currentLang, qr, "back").ops, 0, 0);
+      }
       return single;
     }
 
@@ -777,6 +845,7 @@
   // PDF's name says what's inside: one card or a full sheet, size, language.
   //   card_US_EN_2026-11-14_10-32-05.pdf               one US card, English layout
   //   card_EU_AR_2026-11-14_10-32-05.pdf               one EU card, Arabic layout
+  //   card-2-sided_US_EN_2026-11-14_10-32-05.pdf       one US card, front + back
   //   card-sheet_US-Letter_EN_2026-11-14_10-32-05.pdf  10 US cards on a Letter page
   //   card-sheet_EU-A4_AR_2026-11-14_10-32-05.pdf      10 EU cards on an A4 page
   function pdfFileName(data, lang, stamp) {
@@ -784,7 +853,7 @@
     var language = lang === "ar" ? "AR" : "EN";
     var kind = data.sheet
       ? "card-sheet_" + size + "-" + layoutSheet(data.size).paper.name
-      : "card_" + size;
+      : (hasBack(data) ? "card-2-sided_" : "card_") + size;
     return kind + "_" + language + "_" + stamp + ".pdf";
   }
 
@@ -870,6 +939,65 @@
     },
   };
 
+  // Which side of the card the preview shows. `previewSide` is the one asked
+  // for (the Front / Back switch); `shownSide` is the one drawn, which changes
+  // halfway through the flip animation, when the card is edge-on.
+  var previewSide = "front";
+  var shownSide = "front";
+  var flipping = false;
+
+  // Turn the preview card over to `side`: a quick flip, like turning a card
+  // in your hand. With reduced motion it just switches.
+  function showSide(side) {
+    previewSide = side;
+    document.querySelectorAll('input[name="preview-side"]').forEach(function (radio) {
+      radio.checked = radio.value === side;
+    });
+    var card = document.getElementById("card-preview");
+    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!card || !card.animate || still) {
+      shownSide = side;
+      syncPreview();
+      return;
+    }
+    if (flipping || side === shownSide) return; // the running flip ends on previewSide
+    flipping = true;
+    // Turn one way to show the back, the other way to come back; mirrored in Arabic.
+    var turn = (side === "back" ? 90 : -90) * (currentLang === "ar" ? -1 : 1);
+    var away = card.animate([
+      { transform: "perspective(900px) rotateY(0deg)" },
+      { transform: "perspective(900px) rotateY(" + turn + "deg)" },
+    ], { duration: 140, easing: "cubic-bezier(0.4, 0, 1, 1)" });
+    away.onfinish = function () {
+      shownSide = previewSide;
+      flipping = false;
+      syncPreview();
+      card.animate([
+        { transform: "perspective(900px) rotateY(" + -turn + "deg)" },
+        { transform: "perspective(900px) rotateY(0deg)" },
+      ], { duration: 180, easing: "cubic-bezier(0, 0, 0.2, 1)" });
+    };
+  }
+
+  // The back option changed (or the PDF layout, which decides whether there
+  // is a back): show the back when one was just added, the front when there
+  // is none.
+  function backOptionChanged(event) {
+    var data = readForm();
+    if (!hasBack(data)) showSide("front");
+    else if (event.target.id === "card-back") showSide("back");
+  }
+
+  // The hint under "Back of the card": what the chosen back adds to the PDF,
+  // or why a full sheet won't print it.
+  function updateBackHint(data) {
+    var hint = document.getElementById("card-back-hint");
+    if (!hint) return;
+    var key = data.back === "none" ? "" : (data.sheet ? "hintBackSheet" : "hintBackPage");
+    hint.textContent = key ? t(key) : "";
+    hint.hidden = !key;
+  }
+
   // Mirror the form into the preview card as the user types. The preview is
   // drawn from the same layout as the PDF (layoutCard), including a live QR,
   // so what you see is what prints.
@@ -904,10 +1032,17 @@
     try { qr = buildQrModel(buildVCard(shown)); } catch (e) { qr = null; }
 
     var layout = layoutCard(shown, currentLang, qr);
-    renderPreview(svg, layout);
+    // The back is shown only while the PDF has one (or mid-flip back to the
+    // front). Warnings always come from the front.
+    var side = hasBack(data) || flipping ? shownSide : "front";
+    renderPreview(svg, side === "back" ? layoutCard(shown, currentLang, qr, "back") : layout);
+    svg.setAttribute("aria-label", t(side === "back" ? "previewBackAria" : "previewFrontAria"));
+    var sideSwitch = document.getElementById("side-switch");
+    if (sideSwitch) sideSwitch.hidden = !hasBack(data);
     // The sample card never warns; only what the user typed does.
     updateWarnings(isEmpty ? [] : cardWarnings(layout, data));
     updateLayoutHint(data);
+    updateBackHint(data);
     updateRulers(data);
     updateDownloadLabel(data);
   }
@@ -1059,6 +1194,7 @@
       accent: value("accent"),
       size: value("card-size"),
       layout: value("pdf-layout"),
+      back: value("card-back"),
       output: output ? output.value : "all",
     };
   }
@@ -1135,6 +1271,7 @@
     if (/^#[0-9a-f]{6}$/i.test(str(saved.accent))) setValue("accent", saved.accent);
     setSelect("card-size", saved.size);
     setSelect("pdf-layout", saved.layout);
+    setSelect("card-back", saved.back);
     document.querySelectorAll('input[name="output"]').forEach(function (radio) {
       if (radio.value === saved.output) radio.checked = true;
     });
@@ -1298,6 +1435,10 @@
       var key = el.getAttribute("data-i18n-ph");
       if (dict[key] != null) el.setAttribute("placeholder", dict[key]);
     });
+    document.querySelectorAll("[data-i18n-aria]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-aria");
+      if (dict[key] != null) el.setAttribute("aria-label", dict[key]);
+    });
 
     var toggle = document.getElementById("lang-toggle");
     if (toggle) {
@@ -1314,6 +1455,14 @@
     // A page without the form (tests.html) only uses window.ContactCard, so
     // leave it alone: no saved form, no language switch, no preview.
     if (!form) return;
+    // Before the form's own listeners, so the flip starts before the redraw.
+    ["card-back", "pdf-layout"].forEach(function (id) {
+      var select = document.getElementById(id);
+      if (select) select.addEventListener("change", backOptionChanged);
+    });
+    document.querySelectorAll('input[name="preview-side"]').forEach(function (radio) {
+      radio.addEventListener("change", function () { showSide(radio.value); });
+    });
     form.addEventListener("submit", handleSubmit);
     form.addEventListener("input", formChanged);
     form.addEventListener("change", formChanged);
@@ -1363,6 +1512,7 @@
     buildQrModel: buildQrModel,
     drawQrToCanvas: drawQrToCanvas,
     layoutCard: layoutCard,
+    hasBack: hasBack,
     qrScanCheck: qrScanCheck,
     layoutSheet: layoutSheet,
     buildPdf: buildPdf,
