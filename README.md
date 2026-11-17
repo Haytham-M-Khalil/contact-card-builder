@@ -67,6 +67,14 @@ python -m http.server
 
 …then open the URL it prints.
 
+## Run the tests
+
+Open **`tests.html`** in your browser (again, double-clicking works). It checks the
+vCard text, link and Arabic handling, whether cards fit and their QR scans, and the
+download file names, then lists each test as PASS or FAIL. Nothing to install: the
+tests live in `tests.js` and call the app through `window.ContactCard`. Reload the page
+after changing `app.js` to run them again.
+
 ## Deploy your own (GitHub Pages — free)
 
 Because it's just static files, you can host your own copy for free:
@@ -86,6 +94,7 @@ Every push to `main` redeploys automatically.
 index.html   # markup; loads style.css, then the vendored libs, then app.js
 style.css    # all styles
 app.js       # all app logic (vCard, QR, PDF, preview, validation)
+tests.html   # open in a browser to run the tests in tests.js
 lib/         # vendored libraries (qrcode-generator, jsPDF, Amiri + Arimo fonts) + notes
 docs/        # README assets (screenshot)
 ```

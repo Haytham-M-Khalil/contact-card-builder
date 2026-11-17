@@ -1311,17 +1311,18 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     var form = document.getElementById("card-form");
-    if (form) {
-      form.addEventListener("submit", handleSubmit);
-      form.addEventListener("input", formChanged);
-      form.addEventListener("change", formChanged);
-      // Clear a field's error as soon as the user edits it.
-      form.addEventListener("input", function (event) {
-        if (event.target.id === "name" || event.target.id === "email") {
-          setFieldError(event.target.id, "");
-        }
-      });
-    }
+    // A page without the form (tests.html) only uses window.ContactCard, so
+    // leave it alone: no saved form, no language switch, no preview.
+    if (!form) return;
+    form.addEventListener("submit", handleSubmit);
+    form.addEventListener("input", formChanged);
+    form.addEventListener("change", formChanged);
+    // Clear a field's error as soon as the user edits it.
+    form.addEventListener("input", function (event) {
+      if (event.target.id === "name" || event.target.id === "email") {
+        setFieldError(event.target.id, "");
+      }
+    });
     // Keep the lists' original rows for "Clear form", then put back what was
     // typed last visit — before the swatches and language read the form.
     var defaultRows = {};
@@ -1352,9 +1353,12 @@
     console.log("Contact Card Builder: vCard + QR + PDF ready.");
   });
 
-  // Expose for testing and future steps.
+  // Expose for tests.html and future steps.
   window.ContactCard = {
     readForm: readForm,
+    escapeVCard: escapeVCard,
+    normalizeUrl: normalizeUrl,
+    containsArabic: containsArabic,
     buildVCard: buildVCard,
     buildQrModel: buildQrModel,
     drawQrToCanvas: drawQrToCanvas,

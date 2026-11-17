@@ -83,6 +83,8 @@ applies within these project rules, which win on conflict:
 index.html     # markup; loads style.css, then vendored libs, then app.js
 style.css      # all styles
 app.js         # all app logic (vCard, QR, PDF, i18n, live preview)
+tests.html     # dev page: open in a browser to run tests.js against app.js
+tests.js       # tiny test runner + tests (uses window.ContactCard)
 lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri + Arimo + Readex Pro fonts) + README
 .claude/skills/ # project skills for Claude Code (frontend-design)
 README.md      # user-facing intro, usage, local run, deploy
@@ -118,9 +120,11 @@ and check in with the maintainer after step 3 before starting the bigger feature
      still runs off the card or into the QR; the same warning bar says so. Cards that
      already fit print exactly as before. Download no longer fails silently when the
      data is too big for any QR. **Step-3 check-in done; step 4 is next** (agreed).
-4. *(Optional — maintainer may skip)* **Test page** — `tests.html`, opened in the
-   browser, runs `buildVCard` / `escapeVCard` / `normalizeUrl` / `containsArabic` on
-   sample inputs and shows pass/fail. No toolchain. Best done before steps 5–6.
+4. ✅ **Test page** — `tests.html`, opened in the browser, runs `tests.js` (a tiny
+   runner + tests): `buildVCard` / `escapeVCard` / `normalizeUrl` / `containsArabic`,
+   plus `layoutCard` fit, `qrScanCheck` and file names. No toolchain. **Open it and
+   check it's all green before committing a change to `app.js`**; add tests for new
+   logic (steps 5–6) there.
 5. **Back side, one-card PDF only, off by default** — an option that adds a second
    PDF page per card (back: large QR, or the card in the other language). Preview
    gets a Front/Back switch; the back is laid out by `layoutCard()` too. With the

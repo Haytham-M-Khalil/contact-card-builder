@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact Card Builder tests</title>
+  <!-- A developer page: open it in a browser and it runs tests.js against
+       app.js. Nothing to install. The app itself is index.html. -->
+  <style>
+    :root {
+      --ink: #1c2230;
+      --muted: #5b616b;
+      --paper: #ffffff;
+      --line: #d9dce1;
+      --pass: #1a7f37;
+      --fail: #b42318;
+      --fail-bg: #fdecea;
+      color-scheme: light dark;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink: #e8eaee;
+        --muted: #a3a9b3;
+        --paper: #15181e;
+        --line: #343944;
+        --pass: #5fd18a;
+        --fail: #ff8a80;
+        --fail-bg: #3a1f1f;
+      }
+    }
+    body {
+      margin: 0 auto;
+      max-width: 52rem;
+      padding: 1.5rem 1rem 3rem;
+      font: 15px/1.5 system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+    h2 { font-size: 1rem; margin: 1.75rem 0 0.5rem; padding-block-end: 0.25rem;
+         border-block-end: 1px solid var(--line); }
+    p { color: var(--muted); margin: 0; }
+    #summary { font-size: 1.1rem; font-weight: 600; margin-block: 1rem 0; }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li { padding: 0.2rem 0.4rem; border-radius: 4px; }
+    .mark { display: inline-block; min-width: 2.6rem; font: 600 0.75rem/1 ui-monospace, monospace; }
+    .pass, .pass .mark { color: var(--pass); }
+    li.pass { color: var(--ink); }
+    .fail, .fail .mark { color: var(--fail); }
+    li.fail { background: var(--fail-bg); color: var(--ink); }
+    pre { margin-block: 0.3rem 0.2rem; margin-inline: 2.6rem 0; white-space: pre-wrap; overflow-wrap: anywhere;
+          font: 0.8rem/1.4 ui-monospace, monospace; color: var(--fail); }
+    a { color: inherit; }
+  </style>
+</head>
+<body>
+  <h1>Contact Card Builder tests</h1>
+  <p>Runs on every page load. Back to the <a href="index.html">app</a>.</p>
+  <div id="summary">Running…</div>
+  <main id="results"></main>
+
+  <!-- Same order as index.html: libraries first, then the app, then the tests. -->
+  <script src="lib/qrcode.js"></script>
+  <script src="lib/jspdf.umd.min.js"></script>
+  <script src="lib/amiri-font.js"></script>
+  <script src="app.js"></script>
+  <script src="tests.js"></script>
+</body>
+</html>
