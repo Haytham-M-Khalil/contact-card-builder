@@ -20,9 +20,11 @@ form, pick a card size, and download.
   A small gap between the columns and an accent bar that runs slightly past the card
   edge make it forgiving to cut by hand. Print at "Actual size" (100%), then cut along
   the marks.
-- **Optional back side** for the one-card PDF: a large, easy-to-scan QR code on a
-  second page, ready for double-sided printing. The preview flips the card over to
-  show it.
+- **Optional back side** for the one-card PDF, on a second page ready for
+  double-sided printing: a large, easy-to-scan QR code, or the **card in the other
+  language** (an English front with an Arabic back, or the other way round), with
+  your name, title and company in that language and phone labels translated. The
+  preview flips the card over to show it.
 - **QR code** that encodes a vCard, so anyone can scan to save your contact. In the PDF
   it's drawn as **vector squares**, so it stays crisp at any print size.
 - **`.vcf` contact file** to import the contact directly into any phone or app.

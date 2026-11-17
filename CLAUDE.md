@@ -126,20 +126,20 @@ and check in with the maintainer after step 3 before starting the bigger feature
    plus `layoutCard` fit, `qrScanCheck` and file names. No toolchain. **Open it and
    check it's all green before committing a change to `app.js`**; add tests for new
    logic (steps 5–6) there.
-5. **Back side, one-card PDF only, off by default** — an option that adds a second
-   PDF page per card (back: large QR, or the card in the other language). Preview
-   gets a Front/Back switch; the back is laid out by `layoutCard()` too. With the
-   option off, today's PDF must be unchanged. The full sheet stays front-only (duplex
-   alignment can't be verified without a printer).
-   - ✅ *Large-QR back (2026-11-17):* "Back of the card" select (`back: "none" | "qr"`,
-     saved with the form); `layoutCard(data, lang, qr, "back")` → `layoutBack()`:
-     centered QR (bigger modules than the front's) + caption, accent bar on the far
-     edge (the card turns over like a page). `hasBack()` gates the PDF's page 2, the
-     preview switch (which flips the card) and the `card-2-sided_…` file name. Verified:
-     with the back off, all 8 PDF variants are byte-identical to before.
-   - *Card in the other language:* **waiting on the maintainer.** The form has one
-     name / title / company, so a meaningful bilingual back needs second-language
-     fields first (and phone labels). Add it as another `back` value when agreed.
+5. ✅ **Back side, one-card PDF only, off by default** — "Back of the card" select
+   (`back: "none" | "qr" | "other"`, saved with the form) adds a second PDF page.
+   `layoutCard(data, lang, qr, "back")` lays it out; `hasBack()` gates page 2, the
+   preview's Front/Back switch (it flips the card) and the `card-2-sided_…` file name.
+   The full sheet stays front-only (duplex alignment can't be verified without a
+   printer). With the back blank, every PDF is byte-identical to before.
+   - *Large QR* (`layoutBack()`): centered QR, bigger modules than the front's, accent
+     bar on the far edge (a card turns over like a page).
+   - *Card in the other language* (2026-11-17, maintainer's spec): 3 optional fields
+     (name / title / company in the other language; empty → the front's text). Phone
+     labels are translated through `PHONE_LABELS` pairs; custom ones print as
+     "Phone"/"هاتف" unless already in the back's script. No other new fields (agreed).
+     The vCard/QR stay as they are. The UI language decides the front's, so the
+     language toggle swaps each filled pair and known labels (`swapCardLanguages()`).
 6. **Logo on the back side** — upload an image, centered on the back. Never on the
    front (crowds the layout) and never in the vCard (bloats the QR). Depends on 5.
 7. *Later* — more UI languages via the i18n table, plus a short `CONTRIBUTING.md`.

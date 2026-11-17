@@ -326,6 +326,85 @@
     assertEqual(CC.qrScanCheck(layout(data, "en", "back")), "ok", "back");
   });
 
+  group("The bilingual back: the card in the other language");
+
+  // The text of every text operation on a card, in drawing order.
+  function texts(card) {
+    return card.ops.filter(function (op) { return op.type === "text"; })
+                   .map(function (op) { return op.text; });
+  }
+  function bilingual(overrides) {
+    var data = sampleCard({ back: "other", otherName: "روبن دو", otherTitle: "مصمم منتجات",
+                            otherCompany: "استوديو القيقب والطحلب" });
+    Object.keys(overrides || {}).forEach(function (key) { data[key] = overrides[key]; });
+    return data;
+  }
+
+  test("known phone labels are translated, both ways, ignoring case", function () {
+    assertEqual(CC.translatePhoneLabel("Mobile", "ar"), "موبايل");
+    assertEqual(CC.translatePhoneLabel("whatsapp", "ar"), "واتساب");
+    assertEqual(CC.translatePhoneLabel("Work", "ar"), "عمل");
+    assertEqual(CC.translatePhoneLabel("موبايل", "en"), "Mobile");
+    assertEqual(CC.translatePhoneLabel("تيليجرام", "en"), "Telegram");
+  });
+  test("common variants are understood (Cell, Office, جوال)", function () {
+    assertEqual(CC.translatePhoneLabel("Cell", "ar"), "موبايل");
+    assertEqual(CC.translatePhoneLabel("Office", "ar"), "عمل");
+    assertEqual(CC.translatePhoneLabel("جوال", "en"), "Mobile");
+  });
+  test("a custom label becomes Phone / هاتف; an empty one stays empty", function () {
+    assertEqual(CC.translatePhoneLabel("Fax", "ar"), "هاتف");
+    assertEqual(CC.translatePhoneLabel("رقمي الخاص", "en"), "Phone");
+    assertEqual(CC.translatePhoneLabel("", "ar"), "");
+    assertEqual(CC.translatePhoneLabel("   ", "en"), "");
+  });
+  test("a custom label already in the back's language prints as typed", function () {
+    assertEqual(CC.translatePhoneLabel("Fax", "en"), "Fax");
+    assertEqual(CC.translatePhoneLabel("رقمي الخاص", "ar"), "رقمي الخاص");
+  });
+  test("it counts as a back, but never on a full sheet", function () {
+    assertTrue(CC.hasBack(bilingual()));
+    assertFalse(CC.hasBack(bilingual({ sheet: true })));
+  });
+  test("the front is unchanged by it", function () {
+    var data = bilingual();
+    var qr = CC.buildQrModel(CC.buildVCard(data));
+    assertEqual(CC.layoutCard(data, "en", qr), CC.layoutCard(sampleCard(), "en", qr));
+  });
+  test("the vCard (and so the QR) is unchanged by it", function () {
+    assertEqual(CC.buildVCard(bilingual()), CC.buildVCard(sampleCard()));
+  });
+  test("an English front gets an Arabic back: right-aligned, bar on the right", function () {
+    var back = layout(bilingual(), "en", "back");
+    assertEqual(texts(back), ["امسح لحفظ جهة الاتصال", "روبن دو", "مصمم منتجات",
+      "استوديو القيقب والطحلب", "موبايل", "+1 555 0188", "عمل", "+1 555 0123",
+      "robin.doe@example.com", "robindoe.com"]);
+    assertEqual(barOp(back).x, 248, "bar on the right, the far edge from the front's");
+    assertEqual(back.ops.filter(function (op) { return op.text === "روبن دو"; })[0].align, "right");
+    assertTrue(back.fits);
+  });
+  test("an Arabic front gets an English back", function () {
+    var data = sampleCard({ displayName: "روبن دو", title: "مصمم منتجات", company: "",
+                            phones: [{ label: "واتساب", number: "+970500000000" }],
+                            back: "other", otherName: "Robin Doe", otherTitle: "Product Designer" });
+    var back = layout(data, "ar", "back");
+    assertEqual(texts(back).slice(0, 5), ["Scan to save my contact", "Robin Doe", "Product Designer",
+                                          "WhatsApp", "+970500000000"]);
+    assertEqual(barOp(back).x, 0, "bar on the left");
+  });
+  test("empty back fields print the front's text", function () {
+    var back = layout(bilingual({ otherTitle: "", otherCompany: "" }), "en", "back");
+    assertEqual(texts(back).slice(1, 4), ["روبن دو", "Product Designer", "Maple & Moss Studio"]);
+  });
+  test("a back that doesn't fit says so", function () {
+    var name = "روبن دو الطويل جدًا جدًا جدًا جدًا جدًا جدًا جدًا جدًا جدًا جدًا";
+    assertFalse(layout(bilingual({ otherName: name }), "en", "back").fits);
+  });
+  test("the PDF has 2 pages", function () {
+    var data = bilingual();
+    assertEqual(CC.buildPdf(data, CC.buildQrModel(CC.buildVCard(data))).getNumberOfPages(), 2);
+  });
+
   group("File names");
 
   test("the timestamp is local time, zero-padded, with no colons", function () {
@@ -348,6 +427,15 @@
                 "card-2-sided_US_EN_2026-11-14_10-32-05.pdf");
     assertEqual(CC.pdfFileName({ size: "us", sheet: true, back: "qr" }, "en", stamp),
                 "card-sheet_US-Letter_EN_2026-11-14_10-32-05.pdf");
+  });
+  test("a bilingual card names both languages, front first", function () {
+    var stamp = "2026-11-14_10-32-05";
+    assertEqual(CC.pdfFileName({ size: "us", sheet: false, back: "other" }, "en", stamp),
+                "card-2-sided_US_EN-AR_2026-11-14_10-32-05.pdf");
+    assertEqual(CC.pdfFileName({ size: "eu", sheet: false, back: "other" }, "ar", stamp),
+                "card-2-sided_EU_AR-EN_2026-11-14_10-32-05.pdf");
+    assertEqual(CC.pdfFileName({ size: "eu", sheet: true, back: "other" }, "ar", stamp),
+                "card-sheet_EU-A4_AR_2026-11-14_10-32-05.pdf");
   });
 
   // ---------------------------------------------------------------------------

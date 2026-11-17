@@ -37,6 +37,8 @@
       phEmail: "robin.doe@example.com",
       // Suggestions offered in the phone-label field (free text still allowed).
       phoneLabelPresets: ["WhatsApp", "Mobile", "Work", "Home", "Telegram", "Signal"],
+      // A custom phone label, on the bilingual back (translatePhoneLabel).
+      phoneFallback: "Phone",
       addPhone: "+ Add phone",
       legendContact: "Email and links",
       labelEmail: "Email",
@@ -71,6 +73,13 @@
       labelCardBack: "Back of the card",
       backNone: "Blank (front only)",
       backQr: "Large QR code",
+      backOther: "Card in Arabic",
+      // The back's own text, shown with "Card in Arabic".
+      labelOtherName: "Name in Arabic",
+      labelOtherTitle: "Title / role in Arabic",
+      labelOtherCompany: "Company in Arabic",
+      hintOtherFields: "Leave a field empty to print the front's text. Phone labels are translated, and custom ones print as \u201cهاتف\u201d (Phone).",
+      backOverflow: "On the back, some details are too close to the card's edge or the QR code to print safely. Shorten the name, title or company there, or remove a line.",
       hintBackPage: "Adds a second page to the PDF for the back. Ask the print shop to print both sides.",
       hintBackSheet: "The full sheet prints the front only. Choose one card per page to print the back.",
       // The Front / Back switch under the preview card.
@@ -122,6 +131,7 @@
       phPhone2: "+970511111111",
       phEmail: "flan@example.com",
       phoneLabelPresets: ["واتساب", "موبايل", "عمل", "منزل", "تيليجرام", "سيجنال"],
+      phoneFallback: "هاتف",
       addPhone: "+ إضافة هاتف",
       legendContact: "البريد والروابط",
       labelEmail: "البريد الإلكتروني",
@@ -154,6 +164,12 @@
       labelCardBack: "ظهر البطاقة",
       backNone: "فارغ (الوجه فقط)",
       backQr: "رمز QR كبير",
+      backOther: "البطاقة بالإنجليزية",
+      labelOtherName: "الاسم بالإنجليزية",
+      labelOtherTitle: "المسمى الوظيفي بالإنجليزية",
+      labelOtherCompany: "الشركة بالإنجليزية",
+      hintOtherFields: "اترك أي حقل فارغًا لطباعة نص الوجه كما هو. تُترجم تسميات الهاتف، أما التسميات الخاصة فتُطبع «Phone» (هاتف).",
+      backOverflow: "بعض البيانات على ظهر البطاقة قريبة جدًا من الحافة أو من رمز QR فقد لا تُطبع جيدًا. اختصر الاسم أو المسمى أو الشركة هناك، أو احذف سطرًا.",
       hintBackPage: "يضيف صفحة ثانية إلى ملف PDF لظهر البطاقة. اطلب من المطبعة الطباعة على الوجهين.",
       hintBackSheet: "الورقة الكاملة تطبع وجه البطاقة فقط. اختر بطاقة واحدة في كل صفحة لطباعة الظهر.",
       sideSwitch: "الجهة المعروضة في المعاينة",
@@ -187,7 +203,53 @@
   var currentLang = "en";
 
   function t(key) {
-    return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+    return tIn(currentLang, key);
+  }
+
+  // A UI string in a given language (the card's, which may not be the UI's:
+  // the bilingual back is in the other one).
+  function tIn(lang, key) {
+    return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+  }
+
+  function otherLang(lang) {
+    return lang === "ar" ? "en" : "ar";
+  }
+
+  // Phone labels in both languages, for the bilingual back. Each row is one
+  // label; the first word in each list is the one printed, the others are
+  // common ways people type it. Matching ignores case.
+  var PHONE_LABELS = [
+    { en: ["WhatsApp"], ar: ["واتساب", "واتس اب"] },
+    { en: ["Mobile", "Cell"], ar: ["موبايل", "جوال", "محمول"] },
+    { en: ["Work", "Office"], ar: ["عمل", "العمل"] },
+    { en: ["Home"], ar: ["منزل", "المنزل"] },
+    { en: ["Telegram"], ar: ["تيليجرام", "تلغرام"] },
+    { en: ["Signal"], ar: ["سيجنال"] },
+    { en: ["Phone"], ar: ["هاتف"] },
+  ];
+
+  // `label` (typed in either language) in `lang`, or null if it isn't one of
+  // the labels above.
+  function knownPhoneLabel(label, lang) {
+    var wanted = String(label).trim().toLowerCase();
+    for (var i = 0; i < PHONE_LABELS.length; i++) {
+      var row = PHONE_LABELS[i];
+      var all = row.en.concat(row.ar).map(function (l) { return l.toLowerCase(); });
+      if (all.indexOf(wanted) !== -1) return row[lang][0];
+    }
+    return null;
+  }
+
+  // The label to print on the bilingual back: the known translation, or
+  // "Phone" for a custom label. A custom label already in the back's script
+  // (e.g. "Fax" on an English back) prints as typed. An empty one stays empty.
+  function translatePhoneLabel(label, lang) {
+    label = String(label).trim();
+    if (!label) return "";
+    var known = knownPhoneLabel(label, lang);
+    if (known) return known;
+    return containsArabic(label) === (lang === "ar") ? label : tIn(lang, "phoneFallback");
   }
 
   // ---------------------------------------------------------------------------
@@ -246,8 +308,13 @@
       size: val("card-size") || "us",
       // true = a full page of cards to print at home; false = one card per page.
       sheet: val("pdf-layout") === "sheet",
-      // What prints on the back: "none" or "qr" (see hasBack).
+      // What prints on the back: "none", "qr" or "other" (the card in the
+      // other language; see hasBack and backCardData).
       back: val("card-back") || "none",
+      // The back's own name, title and company, in the other language.
+      otherName: val("other-name"),
+      otherTitle: val("other-title"),
+      otherCompany: val("other-company"),
     };
   }
 
@@ -434,9 +501,13 @@
   // renderPreview() as an SVG, so the preview matches the PDF by construction.
   // A port of the original Python canvas layout. `qr` may be null (preview
   // fallback), in which case the QR box is still reserved at its real size.
-  // `side` is "front" (the default) or "back" (see layoutBack).
+  // `side` is "front" (the default) or "back": a large QR (layoutBack), or
+  // the same card in the other language, mirrored (backCardData).
   function layoutCard(data, lang, qr, side) {
-    if (side === "back") return layoutBack(data, lang, qr);
+    if (side === "back") {
+      if (data.back === "other") return layoutCard(backCardData(data, lang), otherLang(lang), qr);
+      return layoutBack(data, lang, qr);
+    }
     var size = CARD_SIZES[data.size] || CARD_SIZES.us;
     var W = size.w, H = size.h;
     var acc = data.accent || "#732da0";
@@ -462,7 +533,7 @@
     var qy = (H - qrSize) / 2 - 4;
     // quiet: white quiet-zone modules inside the QR box, for scannability.
     ops.push({ type: "qr", x: qx, y: qy, size: qrSize, quiet: 2, qr: qr, color: CARD_INK });
-    text(t("scanCaption"), qx + qrSize / 2, qy + qrSize + 9, 5.4, false, CARD_GREY, "center");
+    text(tIn(lang, "scanCaption"), qx + qrSize / 2, qy + qrSize + 9, 5.4, false, CARD_GREY, "center");
 
     // --- Accent bar (right under RTL, left otherwise) ---
     // `bleed` names the card edge the bar touches. On a full sheet the bar is
@@ -577,7 +648,7 @@
     var qx = (W - qrSize) / 2, qy = M;
     ops.push({ type: "qr", x: qx, y: qy, size: qrSize, quiet: 2, qr: qr, color: CARD_INK });
 
-    var caption = t("scanCaption");
+    var caption = tIn(lang, "scanCaption");
     ops.push({ type: "text", text: caption, x: W / 2, y: qy + qrSize + captionGap,
                size: 5.4, font: cardFont(caption, false), color: CARD_GREY, align: "center" });
 
@@ -588,11 +659,28 @@
     return { w: W, h: H, ops: ops, fits: true };
   }
 
+  // The bilingual back's content: the front's details with the name, title
+  // and company typed for the back (each falls back to the front's, e.g. a
+  // company name that's the same in both languages), and the phone labels
+  // translated. Phones, email, links and the QR stay the same.
+  function backCardData(data, lang) {
+    var to = otherLang(lang);
+    var back = {};
+    Object.keys(data).forEach(function (key) { back[key] = data[key]; });
+    back.displayName = data.otherName || data.displayName;
+    back.title = data.otherTitle || data.title;
+    back.company = data.otherCompany || data.company;
+    back.phones = data.phones.map(function (phone) {
+      return { label: translatePhoneLabel(phone.label, to), number: phone.number };
+    });
+    return back;
+  }
+
   // Does this PDF get a back? Only the one-card PDF does: on a full sheet,
   // fronts and backs would have to line up exactly when printed on both
   // sides, which can't be checked without a printer.
   function hasBack(data) {
-    return !data.sheet && data.back === "qr";
+    return !data.sheet && (data.back === "qr" || data.back === "other");
   }
 
   // Paper for the "full sheet" layout, in points. Each card size goes on the
@@ -845,12 +933,14 @@
   // PDF's name says what's inside: one card or a full sheet, size, language.
   //   card_US_EN_2026-11-14_10-32-05.pdf               one US card, English layout
   //   card_EU_AR_2026-11-14_10-32-05.pdf               one EU card, Arabic layout
-  //   card-2-sided_US_EN_2026-11-14_10-32-05.pdf       one US card, front + back
+  //   card-2-sided_US_EN_2026-11-14_10-32-05.pdf       one US card, front + QR back
+  //   card-2-sided_US_EN-AR_2026-11-14_10-32-05.pdf    English front, Arabic back
   //   card-sheet_US-Letter_EN_2026-11-14_10-32-05.pdf  10 US cards on a Letter page
   //   card-sheet_EU-A4_AR_2026-11-14_10-32-05.pdf      10 EU cards on an A4 page
   function pdfFileName(data, lang, stamp) {
     var size = data.size === "eu" ? "EU" : "US";
     var language = lang === "ar" ? "AR" : "EN";
+    if (hasBack(data) && data.back === "other") language += lang === "ar" ? "-EN" : "-AR";
     var kind = data.sheet
       ? "card-sheet_" + size + "-" + layoutSheet(data.size).paper.name
       : (hasBack(data) ? "card-2-sided_" : "card_") + size;
@@ -989,13 +1079,38 @@
   }
 
   // The hint under "Back of the card": what the chosen back adds to the PDF,
-  // or why a full sheet won't print it.
+  // or why a full sheet won't print it. The back's own fields show only
+  // while the bilingual back will print.
   function updateBackHint(data) {
     var hint = document.getElementById("card-back-hint");
-    if (!hint) return;
-    var key = data.back === "none" ? "" : (data.sheet ? "hintBackSheet" : "hintBackPage");
-    hint.textContent = key ? t(key) : "";
-    hint.hidden = !key;
+    if (hint) {
+      var key = data.back === "none" ? "" : (data.sheet ? "hintBackSheet" : "hintBackPage");
+      hint.textContent = key ? t(key) : "";
+      hint.hidden = !key;
+    }
+    var fields = document.getElementById("back-fields");
+    if (fields) fields.hidden = !(data.back === "other" && hasBack(data));
+  }
+
+  // Switching the UI language also switches the card's: with the bilingual
+  // back, the front is about to become the other language. Swap each typed
+  // pair (name, title, company) so every side keeps its own language, and
+  // turn the phone labels we know into the new language. Custom labels and
+  // empty back fields stay as they are, so nothing typed is lost.
+  function swapCardLanguages() {
+    [["name", "other-name"], ["title", "other-title"], ["company", "other-company"]].forEach(function (pair) {
+      var front = document.getElementById(pair[0]);
+      var back = document.getElementById(pair[1]);
+      if (!front || !back || !back.value.trim()) return;
+      var typed = front.value;
+      front.value = back.value;
+      back.value = typed;
+    });
+    var to = otherLang(currentLang);
+    document.querySelectorAll("#phone-list .phone-label").forEach(function (input) {
+      var known = knownPhoneLabel(input.value, to);
+      if (known) input.value = known;
+    });
   }
 
   // Mirror the form into the preview card as the user types. The preview is
@@ -1009,8 +1124,11 @@
 
     // Until any field is filled in, show the localized fictional sample.
     var isEmpty = !data.displayName && !data.title && !data.company && !data.email &&
-                  data.phones.length === 0 && data.links.length === 0;
+                  data.phones.length === 0 && data.links.length === 0 &&
+                  !data.otherName && !data.otherTitle && !data.otherCompany;
     var view = isEmpty ? SAMPLE[currentLang] : data;
+    // The sample's back text comes from the other language's sample.
+    var otherSample = SAMPLE[otherLang(currentLang)];
     var name = view.displayName || t("previewName");
     var shown = {
       displayName: name,
@@ -1024,6 +1142,10 @@
       linksInVCard: data.linksInVCard,
       accent: data.accent,
       size: data.size,
+      back: data.back,
+      otherName: isEmpty ? otherSample.displayName : data.otherName,
+      otherTitle: isEmpty ? otherSample.title : data.otherTitle,
+      otherCompany: isEmpty ? otherSample.company : data.otherCompany,
     };
 
     // The QR encodes the shown contact, so its density matches the real card.
@@ -1035,12 +1157,13 @@
     // The back is shown only while the PDF has one (or mid-flip back to the
     // front). Warnings always come from the front.
     var side = hasBack(data) || flipping ? shownSide : "front";
-    renderPreview(svg, side === "back" ? layoutCard(shown, currentLang, qr, "back") : layout);
+    var backLayout = layoutCard(shown, currentLang, qr, "back");
+    renderPreview(svg, side === "back" ? backLayout : layout);
     svg.setAttribute("aria-label", t(side === "back" ? "previewBackAria" : "previewFrontAria"));
     var sideSwitch = document.getElementById("side-switch");
     if (sideSwitch) sideSwitch.hidden = !hasBack(data);
     // The sample card never warns; only what the user typed does.
-    updateWarnings(isEmpty ? [] : cardWarnings(layout, data));
+    updateWarnings(isEmpty ? [] : cardWarnings(layout, data, hasBack(data) ? backLayout : null));
     updateLayoutHint(data);
     updateBackHint(data);
     updateRulers(data);
@@ -1063,9 +1186,11 @@
   // that doesn't fit, and a QR that may not scan. For the QR the advice fits
   // the situation: links in the QR are the usual cause, and unticking them
   // keeps them on the card.
-  function cardWarnings(layout, data) {
+  function cardWarnings(layout, data, backLayout) {
     var messages = [];
     if (!layout.fits) messages.push(t("cardOverflow"));
+    // The QR back always fits; the bilingual back has its own text to check.
+    if (backLayout && !backLayout.fits) messages.push(t("backOverflow"));
     var qrState = qrScanCheck(layout);
     if (qrState !== "ok") {
       var linksInQr = data.linksInVCard && data.links.length > 0;
@@ -1195,6 +1320,9 @@
       size: value("card-size"),
       layout: value("pdf-layout"),
       back: value("card-back"),
+      otherName: value("other-name"),
+      otherTitle: value("other-title"),
+      otherCompany: value("other-company"),
       output: output ? output.value : "all",
     };
   }
@@ -1245,6 +1373,9 @@
     setValue("name", saved.name);
     setValue("title", saved.title);
     setValue("company", saved.company);
+    setValue("other-name", saved.otherName);
+    setValue("other-title", saved.otherTitle);
+    setValue("other-company", saved.otherCompany);
     setValue("email", saved.email);
 
     var phones = Array.isArray(saved.phones) ? saved.phones : [];
@@ -1435,6 +1566,13 @@
       var key = el.getAttribute("data-i18n-ph");
       if (dict[key] != null) el.setAttribute("placeholder", dict[key]);
     });
+    // The back's fields take the other language: its sample text as the
+    // placeholder, and lang= so spell-check and screen readers follow.
+    document.querySelectorAll("[data-i18n-ph-other]").forEach(function (el) {
+      var other = otherLang(currentLang);
+      el.setAttribute("placeholder", tIn(other, el.getAttribute("data-i18n-ph-other")));
+      el.lang = other;
+    });
     document.querySelectorAll("[data-i18n-aria]").forEach(function (el) {
       var key = el.getAttribute("data-i18n-aria");
       if (dict[key] != null) el.setAttribute("aria-label", dict[key]);
@@ -1495,7 +1633,10 @@
     var toggle = document.getElementById("lang-toggle");
     if (toggle) {
       toggle.addEventListener("click", function () {
+        var back = document.getElementById("card-back");
+        if (back && back.value === "other") swapCardLanguages();
         applyLanguage(currentLang === "en" ? "ar" : "en");
+        saveForm();
       });
     }
 
@@ -1513,6 +1654,7 @@
     drawQrToCanvas: drawQrToCanvas,
     layoutCard: layoutCard,
     hasBack: hasBack,
+    translatePhoneLabel: translatePhoneLabel,
     qrScanCheck: qrScanCheck,
     layoutSheet: layoutSheet,
     buildPdf: buildPdf,

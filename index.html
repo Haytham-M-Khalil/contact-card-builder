@@ -185,10 +185,30 @@
               <select id="card-back" name="card-back" aria-describedby="card-back-hint">
                 <option value="none" data-i18n="backNone">Blank (front only)</option>
                 <option value="qr" data-i18n="backQr">Large QR code</option>
+                <option value="other" data-i18n="backOther">Card in Arabic</option>
               </select>
               <!-- Filled by app.js (updateBackHint); hidden while the back is blank. -->
               <span class="field__hint" id="card-back-hint" hidden></span>
             </label>
+
+            <!-- The bilingual back's own text, in the other language. Shown only
+                 with "Card in Arabic / English" (app.js: updateBackHint). Each
+                 field is optional: empty prints the front's text. -->
+            <div class="back-fields" id="back-fields" hidden>
+              <label class="field">
+                <span class="field__label" data-i18n="labelOtherName">Name in Arabic</span>
+                <input type="text" id="other-name" name="other-name" dir="auto" autocomplete="off" data-i18n-ph-other="phName" />
+              </label>
+              <label class="field">
+                <span class="field__label" data-i18n="labelOtherTitle">Title / role in Arabic</span>
+                <input type="text" id="other-title" name="other-title" dir="auto" autocomplete="off" data-i18n-ph-other="phTitle" />
+              </label>
+              <label class="field">
+                <span class="field__label" data-i18n="labelOtherCompany">Company in Arabic</span>
+                <input type="text" id="other-company" name="other-company" dir="auto" autocomplete="off" data-i18n-ph-other="phCompany" />
+              </label>
+              <p class="field__hint" data-i18n="hintOtherFields">Leave a field empty to print the front's text.</p>
+            </div>
 
             <div class="field">
               <span class="field__label" id="files-label" data-i18n="labelFiles">Files</span>

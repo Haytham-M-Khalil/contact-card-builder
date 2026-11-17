@@ -542,6 +542,18 @@ select.is-invalid {
   display: none;
 }
 
+/* The bilingual back's fields, set in under "Back of the card": a quiet rule
+   on the start side says they belong to it. */
+.back-fields {
+  margin-block-end: 1.25rem;
+  padding-inline-start: 1rem;
+  border-inline-start: 2px solid var(--line);
+}
+
+.back-fields .field__hint {
+  margin-top: 0;
+}
+
 .field-error {
   display: block;
   margin-top: 0.4rem;
