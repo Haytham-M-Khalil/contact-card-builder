@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The app's logo (a card with crop marks), redrawn for a browser tab:
+       every edge sits on the 16 px pixel grid so it stays sharp when small.
+       The card is white, as it prints; the crop marks follow the theme. -->
+  <style>
+    .mark { stroke: #1d232b; }
+    @media (prefers-color-scheme: dark) { .mark { stroke: #e8ebee; } }
+  </style>
+  <rect x="7" y="11" width="18" height="10" fill="#ffffff" stroke="#1d232b" stroke-width="2" />
+  <path class="mark" stroke-width="2" fill="none"
+        d="M7 2v6M25 2v6M7 24v6M25 24v6M0 11h4M28 11h4M0 21h4M28 21h4" />
+</svg>

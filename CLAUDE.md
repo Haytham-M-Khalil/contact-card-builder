@@ -85,6 +85,7 @@ style.css      # all styles
 app.js         # all app logic (vCard, QR, PDF, i18n, live preview)
 tests.html     # dev page: open in a browser to run tests.js against app.js
 tests.js       # tiny test runner + tests (uses window.ContactCard)
+favicon.svg    # tab icon (the header logo on a pixel grid); apple-touch-icon.png for phones
 lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri + Arimo + Readex Pro fonts) + README
 .claude/skills/ # project skills for Claude Code (frontend-design)
 README.md      # user-facing intro, usage, local run, deploy

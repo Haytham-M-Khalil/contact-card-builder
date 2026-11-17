@@ -95,6 +95,7 @@ index.html   # markup; loads style.css, then the vendored libs, then app.js
 style.css    # all styles
 app.js       # all app logic (vCard, QR, PDF, preview, validation)
 tests.html   # open in a browser to run the tests in tests.js
+favicon.svg  # browser tab icon (apple-touch-icon.png for phone home screens)
 lib/         # vendored libraries (qrcode-generator, jsPDF, Amiri + Arimo fonts) + notes
 docs/        # README assets (screenshot)
 ```
