@@ -2,6 +2,12 @@
 
 Guidance for working in this repo. Read this first.
 
+> **Status (2026-11-17): finished and on hold.** The live site is complete. The
+> maintainer doesn't plan new features; the expected reason to come back is a
+> **real test print** that shows something to fix (see
+> [Fixing print issues](#fixing-print-issues)). Don't start the on-hold roadmap
+> items (6–8) unless the maintainer asks.
+
 ## What this is
 
 **Contact Card Builder** — a browser-only web app that turns a simple form
@@ -87,6 +93,7 @@ tests.html     # dev page: open in a browser to run tests.js against app.js
 tests.js       # tiny test runner + tests (uses window.ContactCard)
 favicon.svg    # tab icon (the header logo on a pixel grid); apple-touch-icon.png for phones
 lib/           # vendored third-party libs (qrcode-generator, jsPDF, Amiri + Arimo + Readex Pro fonts) + README
+docs/          # README assets (screenshot.png)
 .claude/skills/ # project skills for Claude Code (frontend-design)
 README.md      # user-facing intro, usage, local run, deploy
 LICENSE        # MIT
@@ -95,38 +102,29 @@ LICENSE        # MIT
 ## Roadmap (one commit per step)
 
 The original build (v1: scaffold → form → vCard → QR → PDF → downloads → polish →
-GitHub Pages) is shipped; see git history. This is the next round of work, agreed
-with the maintainer on 2026-11-16. **Work top to bottom, mark steps ✅ as they ship,
-and check in with the maintainer after step 3 before starting the bigger features.**
+GitHub Pages) shipped first; see git history. A second round was agreed with the
+maintainer on 2026-11-16. Steps 1–5 shipped; **6–8 are on hold** (maintainer,
+2026-11-17).
 
-1. ✅ **Remember the form between visits** — save the form (name, title, phones, email,
-   links, accent, card size, layout, output) to `localStorage` and restore it on load.
-   Same try/catch pattern as the saved language; the app must still work without it.
-   Agreed details: add a **"Clear form"** button that asks for confirmation first,
-   and the saved form **survives a language switch** (switching language never
-   clears what was typed).
-2. ✅ **Company field** — one optional "Company" input. Shown on the card (via
-   `layoutCard()`) and written to the vCard as `ORG`, so it lands in the QR too.
-   Both languages in the i18n table.
-3. ✅ **QR density warning** — warn (don't block) when the vCard makes the QR too dense
-   to scan reliably at the chosen card size; suggest fewer links or unticking
-   "links in QR". Threshold: a printed QR module under 0.4 mm (`QR_MIN_MODULE_MM`),
-   not yet checked with a real scan of a printed card — tune it if the maintainer's
-   phone disagrees. *On-screen check (2026-11-16, PDF in Brave):* the warned US card
-   with 5 links (0.39 mm modules) only scanned from 250% zoom; the unwarned EU one
-   (0.42 mm) scanned from 110%. So the threshold sits about right; a screen is only a
-   rough stand-in for print, so keep it until a printed card says otherwise.
-   - ✅ *Follow-up from the step-3 check-in (2026-11-16):* `layoutCard()` now tightens
-     the contact-line spacing on crowded cards and returns `fits: false` when text
-     still runs off the card or into the QR; the same warning bar says so. Cards that
-     already fit print exactly as before. Download no longer fails silently when the
-     data is too big for any QR. **Step-3 check-in done; step 4 is next** (agreed).
-4. ✅ **Test page** — `tests.html`, opened in the browser, runs `tests.js` (a tiny
-   runner + tests): `buildVCard` / `escapeVCard` / `normalizeUrl` / `containsArabic`,
-   plus `layoutCard` fit, `qrScanCheck` and file names. No toolchain. **Open it and
-   check it's all green before committing a change to `app.js`**; add tests for new
-   logic (steps 5–6) there.
-5. ✅ **Back side, one-card PDF only, off by default** — "Back of the card" select
+1. ✅ **Remember the form between visits** — the whole form is saved to
+   `localStorage` and restored on load (same try/catch pattern as the saved language;
+   the app still works without storage). **"Clear form"** asks for confirmation first,
+   and switching language never clears what was typed.
+2. ✅ **Company field** — optional; shown on the card (via `layoutCard()`) and written
+   to the vCard as `ORG`, so it lands in the QR too.
+3. ✅ **QR density warning** — warns (never blocks) when a printed QR module would be
+   under 0.4 mm (`QR_MIN_MODULE_MM`) at the chosen card size, and suggests fewer links
+   or unticking "links in QR". `layoutCard()` also tightens the contact-line spacing on
+   crowded cards and returns `fits: false` when text still runs off the card or into
+   the QR; the same warning bar says so. Cards that already fit print exactly as before.
+   *On-screen check (2026-11-16, PDF in Brave):* the warned US card with 5 links
+   (0.39 mm modules) only scanned from 250% zoom; the unwarned EU one (0.42 mm) from
+   110%. The threshold seems about right, but no printed card has been scanned yet.
+4. ✅ **Test page** — `tests.html` runs `tests.js` (a tiny runner + tests) in the
+   browser: vCard building and escaping, URLs, Arabic detection, `layoutCard` fit,
+   `qrScanCheck`, the back side and file names. **Open it and check it's all green
+   before committing a change to `app.js`**, and add tests for new logic there.
+5. ✅ **Back side, one-card PDF only, off by default** — "Back of the card"
    (`back: "none" | "qr" | "other"`, saved with the form) adds a second PDF page.
    `layoutCard(data, lang, qr, "back")` lays it out; `hasBack()` gates page 2, the
    preview's Front/Back switch (it flips the card) and the `card-2-sided_…` file name.
@@ -134,27 +132,56 @@ and check in with the maintainer after step 3 before starting the bigger feature
    printer). With the back blank, every PDF is byte-identical to before.
    - *Large QR* (`layoutBack()`): centered QR, bigger modules than the front's, accent
      bar on the far edge (a card turns over like a page).
-   - *Card in the other language* (2026-11-17, maintainer's spec): 3 optional fields
+   - *Card in the other language* (maintainer's spec, 2026-11-17): 3 optional fields
      (name / title / company in the other language; empty → the front's text). Phone
      labels are translated through `PHONE_LABELS` pairs; custom ones print as
-     "Phone"/"هاتف" unless already in the back's script. No other new fields (agreed).
-     The back gets **its own QR** from the back's details (`backCardData()` →
-     `buildVCard()`), so scanning it saves the contact in the back's language; the
-     `.vcf` and QR `.png` downloads stay the front's (maintainer, 2026-11-17). The UI language decides the front's, so the
-     language toggle swaps each filled pair and known labels (`swapCardLanguages()`).
-6. **Logo on the back side** — upload an image, centered on the back. Never on the
-   front (crowds the layout) and never in the vCard (bloats the QR). Depends on 5.
-7. *Later* — more UI languages via the i18n table, plus a short `CONTRIBUTING.md`.
-8. *Later* — work offline on GitHub Pages (manifest + service worker; `file://`
-   keeps working as today).
+     "Phone"/"هاتف" unless already in the back's script. The back gets **its own QR**
+     from the back's details (`backCardData()` → `buildVCard()`), so scanning it saves
+     the contact in the back's language; the `.vcf` and QR `.png` downloads stay the
+     front's. The UI language decides the front's, so the language toggle swaps each
+     filled pair and known labels (`swapCardLanguages()`).
+
+**On hold (2026-11-17) — start only if the maintainer asks:**
+
+6. *Logo on the back side* — upload an image for the back. Never on the front (crowds
+   the layout) and never in the vCard (bloats the QR). Undecided if it comes back: a
+   4th "Back of the card" option (logo alone, centered) or a logo beside the large QR,
+   and a fixed size or a size choice. A logo would also need its own `localStorage`
+   key, so a full storage quota can't stop the form from being saved.
+7. *More UI languages* via the i18n table, plus a short `CONTRIBUTING.md`. A new
+   right-to-left script would also need a vendored card font (as Amiri is for Arabic).
+8. *Work offline on GitHub Pages* (manifest + service worker). Judged low value: the
+   app needs nothing from the network once loaded, and `file://` already works
+   offline. A service worker would also keep serving old versions after a push.
 
 **Decided against (don't re-propose without a new reason):**
 - *Import a `.vcf` into the form* — step 1 covers the need; not worth the complexity.
 - *Bleed / crop marks on the one-card PDF* — keeps the PDF exactly card-sized. Revisit
   only if a print shop asks for bleed, and then as an option.
 
-**Not blocking:** a physical test print of the full sheet. The page size is verified in
-two PDF viewers; the maintainer has no printer and will print when they can.
+## Fixing print issues
+
+Nothing has been printed on paper yet (the maintainer had no printer); page and card
+sizes were checked only in PDF viewers. When a print happens, check:
+
+- **Full sheet** (Letter / A4, 10 cards): printed at "Actual size" (100%)? A card
+  that's the wrong size is almost always the print dialog's "Fit to page", not the
+  code. Do the cut marks line up, and is the column gap wide enough to cut by hand?
+  Knobs in `app.js`: `SHEET_COLUMN_GAP` (17 pt ≈ 6 mm between columns; rows touch on
+  purpose), `SHEET_BLEED` (5.67 pt = 2 mm of accent bar past the card edge),
+  `SHEET_MIN_MARGIN` (28 pt ≈ 10 mm from the paper edge; home printers can't print to
+  the edge), and the mark `offset` / `len` in `drawCutMarks()`.
+- **QR scan**: compare the US card with 5 links (warned as dense, 0.39 mm modules)
+  with the EU card holding the same details (not warned, 0.42 mm). If the warned one
+  scans easily, lower `QR_MIN_MODULE_MM`; if the unwarned one struggles, raise it.
+- **Text near the edges**: contact lines stop at the card's 14 pt (~5 mm) margin `M` in
+  `layoutCard()`, because print shops only promise to cut within ~3 mm.
+
+Any change to the card goes through `layoutCard()` only (see Design work). Before
+committing, open `tests.html` (all green), and make sure cards that weren't meant to
+change still produce the same PDF: build it from the last commit (`git archive HEAD`)
+and from the working tree, then compare the bytes, ignoring the `/CreationDate` and
+`/ID` lines.
 
 ## How to run locally
 
