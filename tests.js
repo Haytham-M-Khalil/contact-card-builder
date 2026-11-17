@@ -371,8 +371,36 @@
     var qr = CC.buildQrModel(CC.buildVCard(data));
     assertEqual(CC.layoutCard(data, "en", qr), CC.layoutCard(sampleCard(), "en", qr));
   });
-  test("the vCard (and so the QR) is unchanged by it", function () {
+  test("the front's vCard (the .vcf and QR .png downloads) is unchanged by it", function () {
     assertEqual(CC.buildVCard(bilingual()), CC.buildVCard(sampleCard()));
+  });
+
+  // A QR code's squares as text, one row per line, to compare two codes.
+  function qrMatrix(qr) {
+    var rows = [];
+    for (var r = 0; r < qr.getModuleCount(); r++) {
+      var row = "";
+      for (var c = 0; c < qr.getModuleCount(); c++) row += qr.isDark(r, c) ? "#" : ".";
+      rows.push(row);
+    }
+    return rows.join("\n");
+  }
+
+  test("the back's QR holds the back's name, title and company", function () {
+    var data = bilingual();
+    var expected = CC.buildVCard(sampleCard({ displayName: "روبن دو", givenName: "روبن", familyName: "دو",
+      title: "مصمم منتجات", company: "استوديو القيقب والطحلب" }));
+    assertEqual(qrMatrix(qrOp(layout(data, "en", "back")).qr), qrMatrix(CC.buildQrModel(expected)));
+  });
+  test("the front's QR still holds the front's details", function () {
+    var data = bilingual();
+    assertEqual(qrMatrix(qrOp(layout(data, "en")).qr), qrMatrix(CC.buildQrModel(CC.buildVCard(sampleCard()))));
+  });
+  test("an English back's QR is in English (Arabic front)", function () {
+    var data = sampleCard({ displayName: "روبن دو", givenName: "روبن", familyName: "دو", title: "مصمم منتجات",
+                            back: "other", otherName: "Robin Doe", otherTitle: "Product Designer" });
+    var expected = CC.buildVCard(sampleCard());
+    assertEqual(qrMatrix(qrOp(layout(data, "ar", "back")).qr), qrMatrix(CC.buildQrModel(expected)));
   });
   test("an English front gets an Arabic back: right-aligned, bar on the right", function () {
     var back = layout(bilingual(), "en", "back");

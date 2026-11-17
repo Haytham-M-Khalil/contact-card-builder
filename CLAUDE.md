@@ -138,7 +138,9 @@ and check in with the maintainer after step 3 before starting the bigger feature
      (name / title / company in the other language; empty → the front's text). Phone
      labels are translated through `PHONE_LABELS` pairs; custom ones print as
      "Phone"/"هاتف" unless already in the back's script. No other new fields (agreed).
-     The vCard/QR stay as they are. The UI language decides the front's, so the
+     The back gets **its own QR** from the back's details (`backCardData()` →
+     `buildVCard()`), so scanning it saves the contact in the back's language; the
+     `.vcf` and QR `.png` downloads stay the front's (maintainer, 2026-11-17). The UI language decides the front's, so the
      language toggle swaps each filled pair and known labels (`swapCardLanguages()`).
 6. **Logo on the back side** — upload an image, centered on the back. Never on the
    front (crowds the layout) and never in the vCard (bloats the QR). Depends on 5.

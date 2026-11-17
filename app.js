@@ -256,6 +256,17 @@
   // 1. Read the form into a plain data object.
   //    This is the single source of truth the vCard / QR / PDF are built from.
   // ---------------------------------------------------------------------------
+  // Split a full name into given + family for the vCard N field.
+  // Convention (matches the original script): the LAST word is the family
+  // name, everything before it is the given name(s).
+  function splitName(displayName) {
+    var parts = displayName.split(/\s+/).filter(Boolean);
+    return {
+      givenName: parts.length > 1 ? parts.slice(0, -1).join(" ") : displayName,
+      familyName: parts.length > 1 ? parts[parts.length - 1] : "",
+    };
+  }
+
   function readForm() {
     var val = function (id) {
       var el = document.getElementById(id);
@@ -263,13 +274,7 @@
     };
 
     var displayName = val("name");
-
-    // Split the full name into given + family for the vCard N field.
-    // Convention (matches the original script): the LAST word is the family
-    // name, everything before it is the given name(s).
-    var parts = displayName.split(/\s+/).filter(Boolean);
-    var familyName = parts.length > 1 ? parts[parts.length - 1] : "";
-    var givenName = parts.length > 1 ? parts.slice(0, -1).join(" ") : displayName;
+    var name = splitName(displayName);
 
     // Phones: read every row, keep only those with an actual number.
     var phones = [];
@@ -293,8 +298,8 @@
 
     return {
       displayName: displayName,
-      givenName: givenName,
-      familyName: familyName,
+      givenName: name.givenName,
+      familyName: name.familyName,
       title: val("title"),
       company: val("company"),
       phones: phones,
@@ -391,6 +396,11 @@
     qr.addData(text);
     qr.make();
     return qr;
+  }
+
+  // The QR for `text`, or null when there's more than a QR code can hold.
+  function qrModelOrNull(text) {
+    try { return buildQrModel(text); } catch (e) { return null; }
   }
 
   // Draw the QR onto a fresh <canvas>. `scale` is px per module; `margin` is the
@@ -505,7 +515,12 @@
   // the same card in the other language, mirrored (backCardData).
   function layoutCard(data, lang, qr, side) {
     if (side === "back") {
-      if (data.back === "other") return layoutCard(backCardData(data, lang), otherLang(lang), qr);
+      if (data.back === "other") {
+        // Its own QR, so scanning the back saves the contact in the back's
+        // language. (The .vcf and QR .png downloads stay the front's.)
+        var backData = backCardData(data, lang);
+        return layoutCard(backData, otherLang(lang), qrModelOrNull(buildVCard(backData)));
+      }
       return layoutBack(data, lang, qr);
     }
     var size = CARD_SIZES[data.size] || CARD_SIZES.us;
@@ -662,12 +677,16 @@
   // The bilingual back's content: the front's details with the name, title
   // and company typed for the back (each falls back to the front's, e.g. a
   // company name that's the same in both languages), and the phone labels
-  // translated. Phones, email, links and the QR stay the same.
+  // translated. Phones, email and links stay the same. Its QR is built from
+  // this, so it carries the back's name, title and company.
   function backCardData(data, lang) {
     var to = otherLang(lang);
     var back = {};
     Object.keys(data).forEach(function (key) { back[key] = data[key]; });
     back.displayName = data.otherName || data.displayName;
+    var name = splitName(back.displayName);
+    back.givenName = name.givenName;
+    back.familyName = name.familyName;
     back.title = data.otherTitle || data.title;
     back.company = data.otherCompany || data.company;
     back.phones = data.phones.map(function (phone) {
@@ -1191,7 +1210,10 @@
     if (!layout.fits) messages.push(t("cardOverflow"));
     // The QR back always fits; the bilingual back has its own text to check.
     if (backLayout && !backLayout.fits) messages.push(t("backOverflow"));
+    // The bilingual back has its own QR; warn about whichever side is worse.
     var qrState = qrScanCheck(layout);
+    var backQrState = backLayout ? qrScanCheck(backLayout) : "ok";
+    if (qrState === "ok" || backQrState === "too-big") qrState = backQrState;
     if (qrState !== "ok") {
       var linksInQr = data.linksInVCard && data.links.length > 0;
       messages.push(t(qrState === "too-big" ? "qrTooBig" : "qrDense") + " " +
@@ -1520,6 +1542,8 @@
     // above the button already says so and how to fix it.
     var qr;
     try { qr = buildQrModel(vcard); } catch (e) { return; }
+    // Same for the bilingual back's own QR.
+    if (hasBack(data) && qrScanCheck(layoutCard(data, currentLang, qr, "back")) === "too-big") return;
 
     var canvas = drawQrToCanvas(qr);
 
